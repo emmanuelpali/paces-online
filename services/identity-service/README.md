@@ -1,69 +1,29 @@
-# Identity Service
+# PacesOnline Identity Service
 
-The Identity Service is the authentication and user-account service for PacesOnline.
+The Identity Service is the authentication and identity boundary for PacesOnline.
 
-At this stage, the service only provides the initial Spring Boot application foundation. User registration, authentication, tokens, database integration, and other identity features will be added in later issues.
+At the current stage of the project, the service provides the Spring Boot foundation and configuration strategy that later authentication and persistence work will build on.
 
-## Current scope
+## Current Capabilities
 
-Issue #1 includes:
-
-- A standalone Spring Boot application
+- Standalone Spring Boot application
 - Spring Boot Actuator
-- An HTTP health endpoint
-- An application-context startup test
-- Local build and run instructions
+- Health, liveness, and readiness endpoints
+- Profile-based configuration
+- Type-safe token configuration with `@ConfigurationProperties`
+- Configuration validation and fail-fast startup
+- Automated configuration tests
 
-The following are intentionally not included yet:
+Authentication, JWT generation, PostgreSQL persistence, and user management are not implemented yet.
 
-- User entities
-- Registration and login
-- Spring Security configuration
-- JWT access tokens
-- Refresh tokens
-- PostgreSQL
-- Flyway migrations
-- RabbitMQ
-- Business logic
-
-## Prerequisites
+## Requirements
 
 - Java 25
-- Git
+- Maven Wrapper included in the repository
 
-The project includes the Maven Wrapper, so a separate Maven installation is not required.
+## Build and Test
 
-Verify your Java version:
-
-```powershell
-java --version
-```
-
-## Project location
-
-Run all commands in this document from:
-
-```text
-paces-online/services/identity-service
-```
-
-From the repository root:
-
-### Windows PowerShell
-
-```powershell
-cd services/identity-service
-```
-
-### macOS or Linux
-
-```bash
-cd services/identity-service
-```
-
-## Build and test
-
-The following command compiles the application and runs the automated tests.
+From the `services/identity-service` directory:
 
 ### Windows PowerShell
 
@@ -77,136 +37,209 @@ The following command compiles the application and runs the automated tests.
 ./mvnw clean verify
 ```
 
-A successful build ends with:
+A successful build should end with:
 
 ```text
 BUILD SUCCESS
 ```
 
-## Run locally
+## Run Locally
+
+The Identity Service requires token configuration. For local development, use the `local` profile.
 
 ### Windows PowerShell
 
 ```powershell
+$env:SPRING_PROFILES_ACTIVE="local"
 .\mvnw.cmd spring-boot:run
 ```
 
 ### macOS or Linux
 
 ```bash
-./mvnw spring-boot:run
+SPRING_PROFILES_ACTIVE=local ./mvnw spring-boot:run
 ```
 
-By default, the service starts on:
+By default, the service starts at:
 
 ```text
 http://localhost:8080
 ```
 
-Keep this terminal running while testing the service.
+When finished in PowerShell, remove the profile environment variable:
 
-## Verify service health
+```powershell
+Remove-Item Env:SPRING_PROFILES_ACTIVE
+```
 
-Spring Boot Actuator exposes the health endpoint at:
+## Health Endpoints
+
+With the service running, the main health endpoint is:
 
 ```text
 GET /actuator/health
 ```
 
-### Windows PowerShell
+Example:
 
 ```powershell
 Invoke-RestMethod http://localhost:8080/actuator/health
 ```
 
-You can also inspect the full HTTP response:
+The service also exposes Spring Boot liveness and readiness health groups for future container and Kubernetes probes.
 
-```powershell
-Invoke-WebRequest http://localhost:8080/actuator/health
-```
+## Configuration
 
-### macOS or Linux
+The service uses Spring Boot externalized configuration.
 
-```bash
-curl http://localhost:8080/actuator/health
-```
-
-Expected response:
-
-```json
-{
-  "status": "UP"
-}
-```
-
-A `200 OK` response with a status of `UP` confirms that the application started and the Actuator health endpoint is available.
-
-## Run the tests only
-
-### Windows PowerShell
-
-```powershell
-.\mvnw.cmd test
-```
-
-### macOS or Linux
-
-```bash
-./mvnw test
-```
-
-The current test verifies that the Spring application context starts successfully.
-
-## Stop the service
-
-In the terminal running the application, press:
+Configuration is split across:
 
 ```text
-Ctrl+C
+src/main/resources/
+├── application.yml
+├── application-local.yml
+└── application-prod.yml
+
+src/test/resources/
+└── application-test.yml
 ```
 
-## Troubleshooting
+### Base Configuration
 
-### Port 8080 is already in use
+`application.yml` contains configuration shared across environments, including:
 
-Stop the application currently using port `8080`, or temporarily start the service on another port.
+- Application name
+- Server port
+- Actuator endpoint exposure
 
-#### Windows PowerShell
+No Spring profile is hardcoded as active.
+
+### Local Profile
+
+`application-local.yml` contains safe developer defaults.
+
+The local token configuration currently includes:
+
+```yaml
+paces-online:
+  security:
+    token:
+      issuer: paces-online-local
+      access-token-expiration: 15m
+      refresh-token-expiration: 7d
+```
+
+These values are intended only for local development and must never contain real production secrets.
+
+### Test Profile
+
+Automated Spring Boot tests use the `test` profile.
+
+Test configuration is stored in:
+
+```text
+src/test/resources/application-test.yml
+```
+
+The application-context test activates it using:
+
+```java
+@ActiveProfiles("test")
+```
+
+The test profile contains deterministic values so tests do not depend on a developer's local environment.
+
+### Production Profile
+
+Activate the production profile externally:
+
+```text
+SPRING_PROFILES_ACTIVE=prod
+```
+
+The production profile requires token configuration to be supplied through environment variables:
+
+```text
+JWT_ISSUER
+JWT_ACCESS_TOKEN_EXPIRATION
+JWT_REFRESH_TOKEN_EXPIRATION
+```
+
+Example non-secret values:
+
+```text
+JWT_ISSUER=paces-online
+JWT_ACCESS_TOKEN_EXPIRATION=15m
+JWT_REFRESH_TOKEN_EXPIRATION=7d
+```
+
+The production profile intentionally provides no fallback values for required token settings.
+
+If required configuration is missing or invalid, the application fails during startup.
+
+In a future Kubernetes or OpenShift deployment, runtime values will be supplied externally through mechanisms such as ConfigMaps and Secrets.
+
+## Token Configuration
+
+Application-specific token settings are bound to `TokenProperties` using:
+
+```java
+@ConfigurationProperties(prefix = "paces-online.security.token")
+```
+
+The properties are represented using appropriate Java types:
+
+- `issuer` → `String`
+- `accessTokenExpiration` → `Duration`
+- `refreshTokenExpiration` → `Duration`
+
+Configuration validation ensures that:
+
+- The issuer is not blank
+- Access-token expiration is present and greater than zero
+- Refresh-token expiration is present and greater than zero
+- Refresh-token expiration is longer than access-token expiration
+
+Invalid configuration prevents the application from starting.
+
+This issue defines token configuration policy only. JWT generation, signing, verification, and signing-key configuration are implemented in later work.
+
+## Server Port
+
+The HTTP port can be overridden with:
+
+```text
+SERVER_PORT
+```
+
+Example in PowerShell:
 
 ```powershell
-.\mvnw.cmd spring-boot:run "-Dspring-boot.run.arguments=--server.port=8081"
+$env:SERVER_PORT="9090"
 ```
 
-Then check:
+If `SERVER_PORT` is not provided, the service uses port `8080`.
 
-```powershell
-Invoke-RestMethod http://localhost:8081/actuator/health
-```
+## Secrets
 
-### Incorrect Java version
+Real credentials and secrets must never be committed to Git.
 
-Confirm that Java 25 is installed and active:
+This includes:
 
-```powershell
-java --version
-```
+- Passwords
+- JWT signing keys
+- Private keys
+- Access tokens
+- Refresh tokens
+- Database credentials
 
-Also confirm the Java compiler version:
+Production secrets must be supplied by the deployment environment.
 
-```powershell
-javac --version
-```
+## Project Context
 
-### Clean a previous build
+PacesOnline is intentionally kept focused on two goals:
 
-#### Windows PowerShell
+1. Build a strong intermediate-level full-stack portfolio project.
+2. Reinforce practical Kubernetes skills for CKAD preparation.
 
-```powershell
-.\mvnw.cmd clean
-```
-
-#### macOS or Linux
-
-```bash
-./mvnw clean
-```
+The project prefers built-in Spring Boot and Kubernetes capabilities over unnecessary custom abstractions.

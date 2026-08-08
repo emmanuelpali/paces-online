@@ -1,0 +1,10 @@
+paces-online:
+  security:
+    token:
+      issuer: paces-online-local
+      access-token-expiration: 15m
+      refresh-token-expiration: 7d
+
+logging:
+  level:
+    com.pacesonline.identityservice: DEBUG
