@@ -1,0 +1,10 @@
+paces-online:
+  security:
+    token:
+      issuer: paces-online-test
+      access-token-expiration: 5m
+      refresh-token-expiration: 1h
+
+logging:
+  level:
+    com.pacesonline.identityservice: WARN

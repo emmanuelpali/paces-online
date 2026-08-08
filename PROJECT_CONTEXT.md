@@ -1,93 +1,143 @@
 # PacesOnline Project Context
 
-## Purpose of This File
+## Purpose
 
 This file is the durable source of truth for the PacesOnline project.
 
-Use it to preserve project-wide context across:
+It records stable decisions about:
 
-- New ChatGPT conversations
-- GitHub issues and pull requests
-- Development milestones
-- Architecture discussions
-- Code reviews
-- Future tooling or coding assistants
+- Project goals
+- Version 1 scope
+- Architecture
+- Engineering standards
+- Delivery priorities
 
-This file contains stable project decisions. The active GitHub issue contains the detailed scope for the current piece of work.
+Detailed implementation work belongs in the active GitHub issue.
 
-## Project Summary
+Git commits record implementation progress.
 
-**PacesOnline** is a running journal application where users can:
+Handoff documents are optional and should only be created when they provide meaningful continuity between development sessions or conversations.
 
-- Register and log in
+---
+
+# Project Summary
+
+PacesOnline is a running journal application.
+
+A user can:
+
+- Register
+- Log in
 - Record completed runs
-- Optionally attach one photo to a run
-- Review and filter run history
-- View weekly and monthly running statistics
+- View and manage their own runs
+- Filter their run history
 
-PacesOnline is primarily a portfolio and learning project designed to demonstrate intermediate-level engineering with Java, Spring Boot, React, distributed systems, testing, Docker, Kubernetes, and production-readiness practices.
+The application is primarily a portfolio and learning project.
 
-## Target Release
+Its two highest priorities are:
 
-The target for a portfolio-ready Version 1 is:
+1. Build a strong intermediate-level full-stack engineering portfolio project.
+2. Provide practical Kubernetes experience that reinforces CKAD preparation.
+
+The project must not become a collection of technologies added only for learning or résumé keywords.
+
+---
+
+# Target Release
+
+Portfolio-ready Version 1 target:
 
 **September 30, 2026**
 
 Quality is more important than feature count.
 
-The release must demonstrate one complete, secure, tested, documented, and deployable workflow.
+Version 1 must demonstrate one complete workflow that is:
 
-## Developer Goals
+- Functional
+- Secure
+- Tested
+- Documented
+- Containerized
+- Deployable to Kubernetes
 
-The project should help the developer:
+A smaller finished application is more valuable than a larger unfinished architecture.
 
-- Become competitive for intermediate Java and Spring Boot roles
-- Deepen Spring Boot knowledge
-- Learn Spring Boot configuration and production practices
-- Refresh React and TypeScript
-- Practice microservice design
-- Learn OpenAPI contract-driven development
-- Practice asynchronous messaging
-- Prepare for the CKAD certification
-- Build a strong portfolio project for technical interviews
-- Explain architectural choices and tradeoffs confidently
+---
 
-## Core User Workflow
+# Scope Rule
+
+Before adding a technology, service, abstraction, library, or infrastructure component, ask:
+
+> What concrete problem does this solve for the Version 1 workflow or CKAD goal?
+
+Also ask:
+
+> Does the framework or platform already solve this problem?
+
+If an existing Spring Boot, React, PostgreSQL, Docker, or Kubernetes feature already solves the problem adequately, prefer that feature instead of creating a custom abstraction.
+
+Do not add technology solely to demonstrate familiarity with it.
+
+---
+
+# Version 1 Core Workflow
 
 ```text
-Register or log in
-        ↓
-Record a completed run
-        ↓
-Optionally attach a photo
-        ↓
-View and filter run history
-        ↓
-Review weekly or monthly statistics
+Register
+    ↓
+Log in
+    ↓
+Create a run
+    ↓
+View run history
+    ↓
+View / update / delete one of your runs
+    ↓
+Log out
 ```
 
-## Version 1 Features
+A user must never be able to read or modify another user's private runs.
 
-### Identity and Access
+That complete workflow takes priority over optional features.
+
+---
+
+# Version 1 Features
+
+## Identity and Access
 
 A user can:
 
-- Register with an email address and password
+- Register using email and password
 - Log in
-- Receive access and refresh tokens
+- Receive an access token
+- Receive a refresh token
 - Refresh an authenticated session
 - Log out
-- View their profile
-- Be prevented from accessing protected resources when disabled
+- View their own profile
 
-Initial roles:
+The Identity Service is responsible for:
 
-```text
-USER
-ADMIN
-```
+- User registration
+- Password hashing
+- Authentication
+- Access-token generation
+- Refresh-token handling
+- Logout and token revocation
+- Authenticated-user identity
 
-### Run Management
+Version 1 does not require:
+
+- Administrator workflows
+- Role-management screens
+- Account-administration features
+- A complex security-audit subsystem
+
+Authorization must be sufficient to protect authenticated endpoints and prevent cross-user access.
+
+---
+
+## Run Management
 
 A user can:
 
@@ -95,15 +145,14 @@ A user can:
 - View one of their runs
 - Update one of their runs
 - Delete one of their runs
-- View their run history
-- Filter runs by date range
+- View run history
+- Filter runs by date
 - Filter runs by run type
 - Add optional notes
-- Attach one optional photo
-- View weekly statistics
-- View monthly statistics
 
-A user must never be able to view or modify another user’s private runs.
+Average pace is calculated by the backend from distance and duration.
+
+The client must not be trusted to provide the final calculated pace.
 
 ### Run Fields
 
@@ -117,12 +166,11 @@ durationSeconds
 averagePace
 perceivedEffort
 notes
-photoKey
 createdAt
 updatedAt
 ```
 
-Supported run types for Version 1:
+### Initial Run Types
 
 ```text
 EASY
@@ -133,190 +181,216 @@ INTERVAL
 RACE
 ```
 
-Average pace must be calculated by the backend from distance and duration. The client must not be trusted to supply the final pace.
+Statistics, photos, social functionality, and similar enhancements are not required for Version 1.
 
-## Planned Architecture
+---
+
+# Version 1 Architecture
 
 ```text
-                       React
-                         |
-                  Spring Boot BFF
-                         |
-             -------------------------
-             |                       |
-      Identity Service          Run Service
-             |                       |
-       PostgreSQL               PostgreSQL
-                                     |
-                            S3-compatible storage
-                                     |
-                                 RabbitMQ
-                                     |
-                          Notification Worker
+                     React + TypeScript
+                            |
+                            v
+                     Spring Boot BFF
+                            |
+              -----------------------------
+              |                           |
+              v                           v
+       Identity Service              Run Service
+              |                           |
+              v                           v
+         PostgreSQL                  PostgreSQL
 ```
 
-The project uses a **monorepo**, but each application is an independent build and deployment unit.
+The repository is a monorepo.
 
-## Application Responsibilities
+Each application remains independently buildable and deployable.
 
-### React Frontend
+---
+
+# Application Responsibilities
+
+## React Frontend
 
 Responsible for:
 
-- Registration and login screens
-- Run creation and editing forms
-- Run-history screens
-- Weekly and monthly dashboard views
-- Client-side validation and user feedback
+- Registration
+- Login
+- Authenticated session handling
+- Run creation
+- Run editing
+- Run history
+- User feedback and validation
 
-The frontend communicates with the BFF and must not directly call internal services.
+The frontend communicates with the BFF.
 
-### Spring Boot BFF
+The frontend must not directly depend on internal backend-service locations.
+
+---
+
+## Spring Boot BFF
 
 Responsible for:
 
 - Providing a frontend-oriented API
-- Calling internal services through generated OpenAPI clients
+- Calling Identity Service and Run Service
+- Using OpenAPI-generated Java clients
 - Hiding internal service locations
-- Aggregating responses when necessary
-- Propagating authentication context safely
-- Translating internal failures into consistent frontend-facing responses
+- Propagating authenticated context safely
+- Translating backend failures into useful frontend responses
+- Performing limited response aggregation when genuinely useful
 
-The BFF must remain thin. Domain business rules belong in the service that owns the domain.
+The BFF must remain thin.
 
-### Identity Service
+Domain business logic belongs in the service that owns that domain.
+
+---
+
+## Identity Service
 
 Responsible for:
 
-- User registration
+- Registration
 - Password hashing
-- Authentication
+- Login
 - Access tokens
 - Refresh tokens
 - Logout and token revocation
-- Roles
-- Account status
-- Basic security auditing
+- Authenticated profile information
 
 The Identity Service owns its own PostgreSQL data.
 
-### Run Service
+---
+
+## Run Service
 
 Responsible for:
 
 - Run creation
+- Run retrieval
 - Run updates
 - Run deletion
-- Run retrieval
-- Run-history filtering
+- Run history
+- Filtering
 - Pace calculation
-- Weekly and monthly statistics
-- Photo metadata
-- Publishing relevant domain events
+- User ownership enforcement
 
-The Run Service owns its own PostgreSQL data and must not query the Identity Service database.
+The Run Service owns its own PostgreSQL data.
 
-### Notification Worker
+The Run Service must never query Identity Service database tables directly.
 
-Responsible for consuming RabbitMQ messages.
+---
 
-Potential events:
+# Architecture Decisions
+
+The following decisions are currently locked for Version 1:
+
+- The project is named PacesOnline.
+- The repository may remain named `aces-online` until intentionally renamed.
+- The project uses a monorepo.
+- React and TypeScript are used for the frontend.
+- A Spring Boot BFF sits between the frontend and backend services.
+- Identity Service and Run Service are separate Spring Boot applications.
+- Each service is independently buildable and deployable.
+- Each backend service owns its own data.
+- Services do not directly query another service's database.
+- PostgreSQL is the source of truth.
+- Flyway manages database schema migrations.
+- Spring Data/JPA may be used for application persistence.
+- OpenAPI contracts define backend APIs.
+- OpenAPI Generator generates Java clients used by the BFF.
+- Business logic is written manually.
+- Persistence entities are not generated.
+- API DTOs remain separate from persistence entities.
+- Kubernetes supplies runtime configuration externally.
+- Spring Boot remains responsible for configuration binding.
+- Kubernetes ConfigMaps are used for non-secret runtime configuration.
+- Kubernetes Secrets are used for sensitive runtime configuration.
+- One container image is built per deployable application.
+
+Do not introduce additional architectural layers without a concrete problem requiring them.
+
+---
+
+# Spring Boot Configuration Decisions
+
+Use Spring Boot's existing configuration model whenever possible.
+
+Examples:
 
 ```text
-UserRegistered
-RunRecorded
-WeeklySummaryRequested
+spring.datasource.*
+server.*
+management.*
+logging.*
 ```
 
-Potential responsibilities:
+Do not wrap standard Spring Boot configuration in custom classes without a real application-specific requirement.
 
-- Log notification activity
-- Send a welcome email
-- Send a weekly running summary
-- Record failed notification attempts
+For PostgreSQL, use Spring Boot datasource configuration rather than a custom `DatabaseProperties` abstraction.
 
-Mailpit may be used locally to capture email without sending real messages.
+Example:
 
-## Locked Architecture Decisions
+```yaml
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/pacesonline
+    username: pacesonline
+    password: ...
+```
 
-These decisions remain active even when they are outside the current issue:
+Custom `@ConfigurationProperties` classes are appropriate for PacesOnline-specific concepts.
 
-- The project is named **PacesOnline**.
-- The repository may still be named `aces-online` until it is intentionally renamed.
-- The project uses a monorepo.
-- Each Spring Boot service is independently buildable and deployable.
-- The frontend communicates only with the BFF.
-- The BFF communicates with internal services.
-- Identity Service and Run Service publish OpenAPI contracts.
-- OpenAPI Generator will generate Java clients used by the BFF.
-- Generated clients may use Spring `RestClient`, `WebClient`, or another deliberately selected supported library.
-- Service business logic, repositories, persistence entities, and domain implementations will not be generated.
-- Generated server interfaces may be considered later if the benefit justifies the additional complexity.
-- Each service owns its own data.
-- Services must not query another service’s database.
-- PostgreSQL is the source of truth.
-- RabbitMQ is used for asynchronous work.
-- Kafka is not part of Version 1.
-- MinIO is used for local S3-compatible photo storage.
-- Photos are not stored as large binary values in PostgreSQL.
-- Redis is optional and may only be introduced after the core workflow is stable.
-- Elasticsearch is not part of Version 1.
-- Kubernetes deployment uses one container image per application with externally supplied runtime configuration.
-- Kubernetes ConfigMaps and Secrets supply configuration; they do not replace Spring Boot’s configuration model.
+Example:
 
-## Data and Infrastructure Decisions
+```text
+TokenProperties
+```
 
-### PostgreSQL
+for:
 
-- PostgreSQL is the source of truth for application data.
-- Each service owns its own database or logical schema.
-- Services must not directly query another service’s tables.
+```text
+paces-online.security.token.*
+```
 
-### RabbitMQ
+Production configuration and secrets are supplied externally.
 
-RabbitMQ is selected because Version 1 needs:
+---
 
-- Queue-based asynchronous processing
-- Routing
-- Retries
-- Dead-letter handling
-- Background notification work
+# Database Decisions
 
-Kafka should only be reconsidered for future requirements involving high-throughput streams, durable replay, or many independent historical consumers.
+PostgreSQL is the source of truth for persistent application data.
 
-### Redis
+Each service owns its own database or logical database boundary.
 
-Redis is a stretch goal for:
+Services must not directly query each other's tables.
 
-- Weekly statistics caching
-- Monthly statistics caching
-- Recent-run summaries
+Flyway owns schema creation and schema evolution.
 
-Redis must not become the source of truth.
+Example migration structure:
 
-### Photo Storage
+```text
+db/migration/
+├── V1__create_users.sql
+├── V2__create_refresh_tokens.sql
+└── ...
+```
 
-Use:
+Hibernate/JPA maps Java application objects to database data.
 
-- MinIO for local development
-- An S3-compatible API
-- PostgreSQL for object keys and metadata
+Flyway controls schema evolution.
 
-Version 1 supports one optional photo per run.
+Do not rely on Hibernate automatic schema updates as the production migration strategy.
 
-## API and OpenAPI Decisions
+---
 
-- The frontend communicates through the BFF.
-- The BFF communicates with backend services.
-- OpenAPI contracts document service APIs.
-- OpenAPI Generator generates Java clients for the BFF.
-- Generated clients replace scattered handwritten HTTP plumbing in the BFF.
-- API DTOs remain separate from JPA entities.
-- Services do not share persistence entities.
-- API errors follow a consistent structure.
-- APIs are treated as contracts.
-- Full server business implementations are written manually.
-- OpenAPI server-interface generation may be evaluated later, but is not currently required.
+# API and OpenAPI Decisions
+
+The frontend communicates with the BFF.
+
+The BFF communicates with backend services.
+
+Identity Service and Run Service publish OpenAPI contracts.
 
 Planned contract locations:
 
@@ -328,7 +402,131 @@ contracts/
     └── openapi.yml
 ```
 
-## Repository Structure
+OpenAPI Generator generates Java clients for the BFF.
+
+Generated clients should replace repetitive handwritten HTTP client plumbing.
+
+Do not generate:
+
+- Business logic
+- Repository implementations
+- Persistence entities
+- Domain implementations
+
+Server-interface generation is not required for Version 1.
+
+API errors should use a consistent structure.
+
+APIs are treated as contracts.
+
+---
+
+# Testing Strategy
+
+Testing should focus on behavior that provides meaningful confidence.
+
+Use:
+
+- Unit tests for business logic
+- Spring Boot integration tests where framework integration matters
+- Repository/database integration tests using PostgreSQL-compatible test environments
+- Testcontainers when real PostgreSQL behavior needs to be verified
+- Security tests for authentication and authorization
+- End-to-end tests for the primary user workflow
+
+Avoid testing trivial framework behavior merely to increase test counts.
+
+The critical security test is:
+
+> User A must not be able to read, update, or delete User B's runs.
+
+---
+
+# Docker Strategy
+
+Each deployable application gets its own Docker image.
+
+Docker Compose is used for convenient local execution of the required system components.
+
+Version 1 Docker infrastructure should include only components needed by the actual application.
+
+Do not add containers for unused technology.
+
+---
+
+# Kubernetes and CKAD Strategy
+
+Kubernetes is a required part of Version 1 because deployment experience directly supports CKAD preparation and strengthens the portfolio.
+
+PacesOnline should provide practical experience with:
+
+- Pods through Deployments
+- Deployments
+- Services
+- ConfigMaps
+- Secrets
+- Liveness probes
+- Readiness probes
+- Resource requests
+- Resource limits
+- Ingress
+- NetworkPolicies
+- Environment-based configuration
+- Rolling deployments
+- Kustomize where it provides useful environment overlays
+
+The project does not need to implement every CKAD topic.
+
+CKAD-specific exercises should also be practiced independently so that the application does not become bloated merely to cover exam objectives.
+
+Kubernetes manifests should remain understandable and intentionally small.
+
+Do not introduce:
+
+- Service mesh
+- Kubernetes operators
+- Complex platform abstractions
+- Multiple deployment frameworks
+
+unless a future requirement clearly justifies them.
+
+---
+
+# Observability
+
+Version 1 observability is intentionally lightweight.
+
+Use:
+
+- Spring Boot Actuator
+- Health endpoint
+- Liveness
+- Readiness
+- Useful application logs
+- Basic application metrics where useful
+
+A dedicated Prometheus/Grafana observability stack is not required for Version 1.
+
+---
+
+# CI/CD
+
+Version 1 requires one understandable CI pipeline.
+
+The pipeline should eventually:
+
+- Build the applications
+- Run automated tests
+- Fail on test/build errors
+- Build container images when appropriate
+
+Do not introduce multiple CI/CD systems.
+
+Deployment automation may be added only as needed for the final Kubernetes workflow.
+
+---
+
+# Version 1 Repository Structure
 
 ```text
 paces-online/
@@ -338,8 +536,7 @@ paces-online/
 ├── bff/
 ├── services/
 │   ├── identity-service/
-│   ├── run-service/
-│   └── notification-worker/
+│   └── run-service/
 ├── contracts/
 │   ├── identity-api/
 │   └── run-api/
@@ -347,139 +544,159 @@ paces-online/
 │   ├── docker/
 │   └── kubernetes/
 └── docs/
-    ├── 01-project-vision.md
-    ├── 02-functional-requirements.md
-    ├── 03-high-level-architecture.md
-    ├── roadmap.md
-    ├── current-milestone.md
-    ├── engineering-journal.md
-    ├── HANDOFF_TEMPLATE.md
-    └── decisions/
 ```
 
-Directories may be added when the milestone that needs them begins. Empty placeholder directories are not required.
+Directories should be created when they are actually needed.
 
-## Delivery Roadmap
+Empty placeholder directories are not required.
 
-### Milestone 0 — Project Discovery
+---
 
-Deliverables:
+# Delivery Roadmap
+
+## Milestone 0 — Project Foundation
+
+Status: substantially complete.
+
+Includes:
 
 - Project vision
-- Functional requirements
-- Architecture
-- Roadmap
-- Project context
-- Initial architectural decision records
-
-### Milestone 1 — Identity and Access
-
-Deliverables:
-
+- Initial architecture
+- Repository structure
 - Identity Service bootstrap
+- Project context
+
+---
+
+## Milestone 1 — Identity and Access
+
+Deliver:
+
 - Spring profiles
-- Type-safe configuration properties
+- Type-safe token configuration
 - PostgreSQL
-- Flyway migrations
+- Flyway
+- User persistence
 - Registration
+- Password hashing
 - Login
 - Access tokens
 - Refresh tokens
 - Logout
 - Authenticated profile
-- Security tests
-- Dockerfile
-- OpenAPI documentation
+- Authentication/security tests
+- Identity OpenAPI contract
+- Identity Service Dockerfile
 
-### Milestone 2 — Run Management
+Avoid unrelated identity-administration features.
 
-Deliverables:
+---
 
-- Run data model
-- Create, view, update, and delete run
+## Milestone 2 — Run Management
+
+Deliver:
+
+- Run persistence model
+- Flyway migrations
+- Run creation
+- Run retrieval
+- Run update
+- Run deletion
 - Run history
-- Filtering
-- Pace calculation
-- Validation
-- Database migrations
+- Date filtering
+- Run-type filtering
+- Backend pace calculation
+- Cross-user authorization
 - Automated tests
+- Run OpenAPI contract
+- Run Service Dockerfile
 
-### Milestone 3 — BFF and React
+---
 
-Deliverables:
+## Milestone 3 — BFF and React
 
-- OpenAPI contracts
-- Generated Java clients
+Deliver:
+
+- Generated Java API clients
 - BFF integration
-- Registration and login screens
-- Run form
-- Run-history screen
+- React + TypeScript frontend
+- Registration UI
+- Login UI
+- Run creation/editing UI
+- Run-history UI
 - Authentication handling
 - Consistent error handling
 
-### Milestone 4 — Photos and Messaging
+At the end of this milestone, the complete application workflow should work locally.
 
-Deliverables:
+---
 
-- Photo upload
-- MinIO integration
-- RabbitMQ
-- Domain events
-- Notification Worker
-- Retries
-- Dead-letter handling
-- Local email capture
+## Milestone 4 — Integration and Local Deployment
 
-### Milestone 5 — Dashboard and Quality
+Deliver:
 
-Deliverables:
-
-- Weekly statistics
-- Monthly statistics
-- Redis caching only if justified
 - Docker Compose
-- Testcontainers integration
-- End-to-end workflow testing
+- PostgreSQL containers
+- Full local application startup
+- Integration tests
+- End-to-end core workflow test
+- README instructions
 
-### Milestone 6 — Kubernetes Release
+The required workflow must work before moving to optional enhancements.
 
-Deliverables:
+---
 
-- Kubernetes manifests
-- Deployments
-- Services
-- Ingress
+## Milestone 5 — Kubernetes and Portfolio Release
+
+Deliver:
+
+- Kubernetes Deployments
+- Kubernetes Services
 - ConfigMaps
 - Secrets
-- Health probes
-- Resource controls
-- CI/CD
-- Metrics
-- Documentation
-- Screenshots
-- Demo workflow
+- Liveness probes
+- Readiness probes
+- Resource requests and limits
+- Ingress
+- NetworkPolicies
+- Kustomize where useful
+- CI pipeline
+- Deployment documentation
+- Architecture documentation
+- Screenshots or demo material
+- Final portfolio README
 
-## Version 1 Scope Discipline
+Version 1 is complete when the main workflow is secure, tested, documented, and deployable.
 
-The following are required before stretch features:
+---
 
-1. Registration and login work.
-2. Run CRUD works.
-3. Authorization prevents cross-user access.
-4. Run history and filtering work.
-5. Core integration tests pass.
-6. Docker Compose runs the system.
-7. The application is deployable to Kubernetes.
+# Explicitly Out of Scope for Version 1
 
-Optional features must not delay testing, deployment, documentation, or release preparation.
+The following technologies and features are deferred until after the primary career and CKAD goals have been achieved:
 
-## Explicitly Out of Scope for Version 1
-
-- Elasticsearch
+- Redis
+- RabbitMQ
 - Kafka
+- Notification Worker
+- MinIO
+- S3/object-storage integration
+- Run photos
+- Email notifications
+- Weekly notification jobs
+- Complex retry/dead-letter infrastructure
+- Administrator role-management workflows
+- Account-management administration
+- Complex security-audit subsystem
+- Weekly/monthly analytics dashboards
+- Advanced analytics
+- Elasticsearch
+- Advanced observability platforms
+- Prometheus/Grafana deployment stack
+- Service mesh
+- Event sourcing
 - GPS tracking
 - Route maps
-- Wearable-device integrations
+- Wearable integrations
 - Social feeds
 - Followers
 - Likes
@@ -488,130 +705,129 @@ Optional features must not delay testing, deployment, documentation, or release 
 - Challenges
 - Training plans
 - Payments
-- Mobile applications
+- Native mobile applications
 - AI coaching
-- Advanced analytics
-- Service mesh
-- Event sourcing
 
-## Development Process
+These may be revisited after Version 1 and after the current job-search/CKAD priorities.
 
-Every feature follows this sequence:
+---
 
-1. Define the requirement.
-2. Write acceptance criteria.
-3. Design the API.
-4. Design the data model.
-5. Implement the feature.
-6. Add automated tests.
-7. Review and refactor.
-8. Update documentation.
+# Development Process
 
-Every major technology must solve a defined problem.
+Keep project management lightweight.
 
-## Quality Standards
+Use:
 
-A feature is not complete merely because it runs.
+```text
+PROJECT_CONTEXT.md
+        ↓
+GitHub issue
+        ↓
+implementation
+        ↓
+tests
+        ↓
+commit / pull request
+```
 
-Each completed feature should include:
+`PROJECT_CONTEXT.md` records stable project decisions.
 
-- Clear acceptance criteria
-- Validation
-- Consistent error handling
-- Security considerations
-- Automated tests
+The active GitHub issue defines the current scope.
+
+Git commits record implementation progress.
+
+A handoff document is created only when it is genuinely useful for continuity.
+
+Do not create documentation or process artifacts solely because a template exists.
+
+Before implementing a new abstraction, ask:
+
+1. What concrete problem does it solve?
+2. Does Spring Boot, React, PostgreSQL, Docker, or Kubernetes already solve it?
+3. Is it required for the core workflow?
+4. Does it materially support CKAD or the intermediate portfolio goal?
+
+If the answers do not justify the complexity, do not add it.
+
+---
+
+# Quality Standard
+
+Intermediate-level engineering should be demonstrated through correct decisions and finished behavior, not through maximum architecture complexity.
+
+Important qualities include:
+
+- Clear boundaries
+- Correct validation
+- Secure authentication
+- Correct authorization
+- Database migrations
+- Good API contracts
+- Meaningful automated tests
 - Externalized configuration
-- Useful logs
-- Updated documentation
-- Clean naming and package organization
+- Useful logging
+- Containerization
+- Kubernetes deployment
+- CI
+- Documentation
+- Ability to explain architectural tradeoffs
 
-## Current Status
+A feature is complete when it works reliably and is adequately tested.
 
-### Completed
+Not every feature requires a new abstraction, design document, or framework.
 
-**Issue #1 — Bootstrap Identity Service**
+---
 
-Completed outcomes:
+# Current Work
 
-- Standalone Spring Boot Identity Service
-- Spring Boot Actuator
+## Completed
+
+Issue #1 — Bootstrap Identity Service
+
+The Identity Service baseline includes:
+
+- Standalone Spring Boot application
+- Actuator
 - Health endpoint
 - Liveness and readiness groups
 - Application-context startup test
 - Service README
-- Successful local `clean verify`
-- Successful health response with status `UP`
+- Successful Maven verification
 
-### Active
+## Active
 
-**Issue #2 — Configure Spring Profiles and Type-Safe Configuration**
+Issue #2 — Configure Spring Profiles and Type-Safe Configuration
 
-The active issue establishes:
+Issue #2 establishes:
 
 - `application.yml`
 - `application-local.yml`
 - `application-test.yml`
 - `application-prod.yml`
 - External profile activation
-- `@ConfigurationProperties`
+- `TokenProperties`
 - Configuration validation
 - Fail-fast startup
 - Environment-variable overrides
 - Safe secret handling
 - Configuration tests
-- Updated documentation
+- README documentation
 
-JWT implementation, authentication, JPA, Flyway, and real PostgreSQL connectivity remain out of scope for Issue #2.
+Issue #2 does not include database configuration.
 
-## Source-of-Truth Reading Order
+Database configuration begins with the PostgreSQL/Flyway persistence work and will use Spring Boot's standard datasource configuration.
 
-At the beginning of a new development session:
+---
 
-1. Read `PROJECT_CONTEXT.md`.
-2. Read `docs/current-milestone.md`.
-3. Read the active GitHub issue.
-4. Read relevant architectural decision records.
-5. Read the latest handoff created from `docs/HANDOFF_TEMPLATE.md`.
-6. Confirm the current branch and exact head commit.
-7. Identify the next unfinished acceptance criterion.
-8. Do not expand the active issue’s scope.
+# Source of Truth
 
 When sources disagree:
 
-1. The latest approved architectural decision record wins for that decision.
-2. `PROJECT_CONTEXT.md` wins for stable project-wide context.
-3. The active GitHub issue wins for current implementation scope.
-4. The latest exact commit wins for code state.
-5. Chat memory is advisory only and must not override repository sources.
+1. An intentionally approved architecture decision supersedes an older decision.
+2. `PROJECT_CONTEXT.md` defines current stable project direction.
+3. The active GitHub issue defines the current implementation scope.
+4. The current Git branch and commits define actual code state.
+5. Old handoffs are historical and must not override newer project decisions.
+6. Chat memory is advisory and must not override repository state.
 
-## Pull Request Review Protocol
-
-For every PR review:
-
-- Provide the PR URL.
-- Provide the exact head commit SHA.
-- Review that exact commit, not an indexed or cached summary.
-- State the SHA being reviewed.
-- Distinguish between:
-  - Code visible at the exact commit
-  - Local command output supplied by the developer
-  - Behavior not independently executed
-- If GitHub views disagree, report the inconsistency instead of assuming the developer failed to push.
-- Re-check the exact head SHA after every update.
-
-## Mentoring Approach
-
-The assistant should act as a senior engineer and mentor.
-
-The assistant should:
-
-- Explain concepts before implementation where necessary
-- Work through one checkpoint at a time
-- Review architectural and coding decisions
-- Challenge unnecessary complexity
-- Identify overengineering
-- Keep development within the active issue
-- Review code, tests, commands, and exact commits
-- Explain tradeoffs
-- Help prepare interview explanations
-- Avoid implementing the entire project on the developer’s behalf
+The goal is continuity without unnecessary project-management overhead.

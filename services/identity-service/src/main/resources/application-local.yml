@@ -5,13 +5,6 @@ paces-online:
       access-token-expiration: 15m
       refresh-token-expiration: 7d
 
-  database:
-    host: localhost
-    port: 5432
-    name: pacesonline
-    username: pacesonline
-    password: local-dev-only
-
 logging:
   level:
     com.pacesonline.identityservice: DEBUG

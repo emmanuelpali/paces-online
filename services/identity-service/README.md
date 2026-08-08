@@ -210,3 +210,39 @@ javac --version
 ```bash
 ./mvnw clean
 ```
+## Configuration
+
+The Identity Service uses Spring Boot profiles and externalized configuration.
+
+### Profiles
+
+The service currently supports:
+
+- `local` — local development with safe developer defaults
+- `test` — automated tests with deterministic test values
+- `prod` — production/runtime configuration supplied externally
+
+No profile is activated by default.
+
+### Local Development
+
+Activate the local profile before starting the service.
+
+PowerShell:
+
+```powershell
+$env:SPRING_PROFILES_ACTIVE="local"
+.\mvnw.cmd spring-boot:run
+remove test profile Remove-Item Env:SPRING_PROFILES_ACTIVE
+
+### Test Profile
+
+Automated Spring Boot tests use the test profile.
+
+Test-specific configuration is stored in:
+
+src/test/resources/application-test.yml
+
+Tests activate the profile using:
+
+@ActiveProfiles("test")
