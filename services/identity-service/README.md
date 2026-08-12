@@ -243,3 +243,15 @@ PacesOnline is intentionally kept focused on two goals:
 2. Reinforce practical Kubernetes skills for CKAD preparation.
 
 The project prefers built-in Spring Boot and Kubernetes capabilities over unnecessary custom abstractions.
+
+### Local PostgreSQL
+
+The Identity Service expects PostgreSQL on port `5432` by default.
+
+If port `5432` is already in use, expose the PostgreSQL container on another
+host port and override `DB_URL`.
+
+Example:
+
+```powershell
+$env:DB_URL="jdbc:postgresql://localhost:5433/pacesonline_identity"
