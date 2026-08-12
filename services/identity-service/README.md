@@ -14,7 +14,7 @@ At the current stage of the project, the service provides the Spring Boot founda
 - Configuration validation and fail-fast startup
 - Automated configuration tests
 
-Authentication, JWT generation, PostgreSQL persistence, and user management are not implemented yet.
+Authentication, JWT generation, user persistence through JPA, and user management are not implemented yet.
 
 ## Requirements
 
@@ -244,14 +244,15 @@ PacesOnline is intentionally kept focused on two goals:
 
 The project prefers built-in Spring Boot and Kubernetes capabilities over unnecessary custom abstractions.
 
-### Local PostgreSQL
+### PostgreSQL and Flyway
 
-The Identity Service expects PostgreSQL on port `5432` by default.
+The Identity Service uses PostgreSQL for persistence and Flyway for database schema migrations.
 
-If port `5432` is already in use, expose the PostgreSQL container on another
-host port and override `DB_URL`.
+For local development, the default datasource configuration is:
 
-Example:
-
-```powershell
-$env:DB_URL="jdbc:postgresql://localhost:5433/pacesonline_identity"
+```text
+Database: pacesonline_identity
+Host: localhost
+Port: 5432
+Username: pacesonline
+Password: pacesonline
