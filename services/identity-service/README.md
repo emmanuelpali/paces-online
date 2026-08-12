@@ -256,3 +256,36 @@ Host: localhost
 Port: 5432
 Username: pacesonline
 Password: pacesonline
+```
+
+The local datasource can be overridden with:
+
+```text
+DB_URL
+DB_USERNAME
+DB_PASSWORD
+```
+
+For example, if PostgreSQL is exposed on host port `5433`:
+
+```powershell
+$env:DB_URL="jdbc:postgresql://localhost:5433/pacesonline_identity"
+```
+
+Production database configuration has no fallback values and must be supplied by the deployment environment.
+
+Flyway migrations are stored under:
+
+```text
+src/main/resources/db/migration
+```
+
+The initial migration is:
+
+```text
+V1__create_users_table.sql
+```
+
+Flyway automatically applies pending migrations when the application starts with a configured datasource.
+
+Database integration tests use Testcontainers to start a temporary PostgreSQL instance. This allows `clean verify` to test the actual PostgreSQL and Flyway integration without requiring a manually configured test database. Docker must be available when running these integration tests.
