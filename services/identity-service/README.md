@@ -289,3 +289,39 @@ V1__create_users_table.sql
 Flyway automatically applies pending migrations when the application starts with a configured datasource.
 
 Database integration tests use Testcontainers to start a temporary PostgreSQL instance. This allows `clean verify` to test the actual PostgreSQL and Flyway integration without requiring a manually configured test database. Docker must be available when running these integration tests.
+
+## User Registration
+
+The Identity Service supports user registration through:
+
+POST /api/v1/auth/register
+
+Example request:
+
+{
+  "email": "runner@example.com",
+  "password": "strong-password"
+}
+
+A successful registration returns 201 Created:
+
+{
+  "id": "e3a9ad9c-4d7c-4c66-9787-90930f746665",
+  "email": "runner@example.com",
+  "createdAt": "2026-08-14T01:45:43Z"
+}
+
+Registration behavior:
+
+Email addresses are normalized to lowercase before persistence.
+Passwords are encoded using the configured Spring Security PasswordEncoder.
+Raw passwords are never persisted or returned by the API.
+Invalid registration requests return 400 Bad Request.
+Registering an email that already exists returns 409 Conflict.
+PostgreSQL's unique email constraint remains the final protection against concurrent duplicate registrations.
+
+The Identity Service OpenAPI contract is maintained at:
+
+contracts/identity-api/openapi.yml
+
+The Identity Service implements this contract with handwritten controller code. Server-side code generation is not used for the Identity Service.
