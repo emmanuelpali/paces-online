@@ -384,40 +384,68 @@ Do not rely on Hibernate automatic schema updates as the production migration st
 
 ---
 
-# API and OpenAPI Decisions
+# API and OpenAPI Strategy
 
-The frontend communicates with the BFF.
+PacesOnline treats OpenAPI contracts as the explicit boundaries between frontend-facing and backend services.
 
-The BFF communicates with backend services.
+Backend Services
 
-Identity Service and Run Service publish OpenAPI contracts.
+Backend services such as the Identity Service and Run Service maintain handwritten OpenAPI contracts under the repository-level contracts/ directory.
 
-Planned contract locations:
+Example:
 
-```text
 contracts/
-├── identity-api/
-│   └── openapi.yml
-└── run-api/
-    └── openapi.yml
-```
+└── identity-api/
+└── openapi.yml
 
-OpenAPI Generator generates Java clients for the BFF.
+Backend service controllers and application implementations remain handwritten.
 
-Generated clients should replace repetitive handwritten HTTP client plumbing.
+PacesOnline does not generate server/controller implementations for backend services in Version 1.
 
-Do not generate:
+BFF Service Clients
 
-- Business logic
-- Repository implementations
-- Persistence entities
-- Domain implementations
+The Spring Boot BFF will generate Java client code from backend service OpenAPI contracts.
 
-Server-interface generation is not required for Version 1.
+For example:
 
-API errors should use a consistent structure.
+Identity Service openapi.yml
+↓
+OpenAPI Generator
+↓
+Generated Identity Java client
+↓
+BFF
 
-APIs are treated as contracts.
+The BFF should use generated clients rather than manually implementing REST calls where a maintained backend OpenAPI contract exists.
+
+Generated source code must not be edited manually.
+
+BFF Public API
+
+The BFF will maintain its own OpenAPI contract for the API exposed to the React frontend.
+
+Unlike the backend services, the BFF will use OpenAPI Generator to generate controller/server interfaces from its public API contract.
+
+The architecture is:
+
+BFF OpenAPI contract
+↓
+OpenAPI Generator
+↓
+Generated controller interfaces
+↓
+Handwritten BFF implementation classes
+
+Business logic remains handwritten. Code generation defines the HTTP boundary rather than generating application behavior.
+
+Version 1 Learning Goal
+
+Version 1 should demonstrate both important OpenAPI generation directions:
+
+Backend contract → generated BFF client
+BFF contract → generated BFF server/controller interface
+
+This provides practical experience with contract-driven development and build-time code generation without introducing generated server code into every service.
 
 ---
 
