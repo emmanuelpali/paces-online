@@ -1,0 +1,76 @@
+openapi: 3.0.3
+
+info:
+  title: PacesOnline Identity API
+  version: 0.1.0
+  description: API contract for the PacesOnline Identity Service.
+
+tags:
+  - name: Authentication
+    description: Identity and authentication operations.
+
+paths:
+  /api/v1/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      operationId: registerUser
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterUserRequest'
+
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisteredUserResponse'
+
+        '400':
+          description: Registration request is invalid
+
+        '409':
+          description: Email is already registered
+
+components:
+  schemas:
+    RegisterUserRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: runner@example.com
+        password:
+          type: string
+          minLength: 8
+          example: strong-password
+
+    RegisteredUserResponse:
+      type: object
+      required:
+        - id
+        - email
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+        email:
+          type: string
+          format: email
+          example: runner@example.com
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-08-13T20:00:00Z'

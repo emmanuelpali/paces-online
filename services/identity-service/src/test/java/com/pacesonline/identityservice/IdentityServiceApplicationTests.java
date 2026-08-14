@@ -8,7 +8,12 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+
+import com.pacesonline.identityservice.auth.RegistrationService;
+import com.pacesonline.identityservice.user.User;
+import com.pacesonline.identityservice.user.UserRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -18,6 +23,15 @@ class IdentityServiceApplicationTests {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private RegistrationService registrationService;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Test
     void contextLoads() {
@@ -36,6 +50,28 @@ class IdentityServiceApplicationTests {
         );
 
         assertThat(tableCount).isEqualTo(1);
+    }
+
+    @Test
+    void registrationPersistsNormalizedEmailAndHashedPassword() {
+        User registeredUser = registrationService.register(
+                " Runner@Example.com ",
+                "strong-password"
+        );
+
+        User persistedUser = userRepository.findById(registeredUser.getId())
+                .orElseThrow();
+
+        assertThat(persistedUser.getEmail())
+                .isEqualTo("runner@example.com");
+
+        assertThat(persistedUser.getPasswordHash())
+                .isNotEqualTo("strong-password");
+
+        assertThat(passwordEncoder.matches(
+                "strong-password",
+                persistedUser.getPasswordHash()
+        )).isTrue();
     }
 
     @TestConfiguration(proxyBeanMethods = false)
