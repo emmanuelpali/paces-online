@@ -13,7 +13,9 @@ import jakarta.validation.constraints.NotNull;
 public record TokenProperties(
         @NotBlank String issuer,
         @NotNull Duration accessTokenExpiration,
-        @NotNull Duration refreshTokenExpiration
+        @NotNull Duration refreshTokenExpiration,
+        String privateKeyLocation,
+        String publicKeyLocation
 ) {
 
     public TokenProperties {

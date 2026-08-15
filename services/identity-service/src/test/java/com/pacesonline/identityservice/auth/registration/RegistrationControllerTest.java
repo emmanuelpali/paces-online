@@ -1,5 +1,8 @@
-package com.pacesonline.identityservice.auth;
+package com.pacesonline.identityservice.auth.registration;
 
+import com.pacesonline.identityservice.auth.registration.EmailAlreadyRegisteredException;
+import com.pacesonline.identityservice.auth.registration.RegistrationController;
+import com.pacesonline.identityservice.auth.registration.RegistrationService;
 import com.pacesonline.identityservice.user.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

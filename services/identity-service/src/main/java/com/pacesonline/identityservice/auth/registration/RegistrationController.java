@@ -1,4 +1,4 @@
-package com.pacesonline.identityservice.auth;
+package com.pacesonline.identityservice.auth.registration;
 
 import com.pacesonline.identityservice.user.User;
 import jakarta.validation.Valid;

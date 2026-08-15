@@ -806,47 +806,6 @@ Not every feature requires a new abstraction, design document, or framework.
 
 ---
 
-# Current Work
-
-## Completed
-
-Issue #1 — Bootstrap Identity Service
-
-The Identity Service baseline includes:
-
-- Standalone Spring Boot application
-- Actuator
-- Health endpoint
-- Liveness and readiness groups
-- Application-context startup test
-- Service README
-- Successful Maven verification
-
-## Active
-
-Issue #2 — Configure Spring Profiles and Type-Safe Configuration
-
-Issue #2 establishes:
-
-- `application.yml`
-- `application-local.yml`
-- `application-test.yml`
-- `application-prod.yml`
-- External profile activation
-- `TokenProperties`
-- Configuration validation
-- Fail-fast startup
-- Environment-variable overrides
-- Safe secret handling
-- Configuration tests
-- README documentation
-
-Issue #2 does not include database configuration.
-
-Database configuration begins with the PostgreSQL/Flyway persistence work and will use Spring Boot's standard datasource configuration.
-
----
-
 # Source of Truth
 
 When sources disagree:

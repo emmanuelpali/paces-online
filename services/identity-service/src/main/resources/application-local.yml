@@ -1,7 +1,7 @@
 paces-online:
   security:
     token:
-      issuer: paces-online-local
+      issuer: https://identity.pacesonline.local
       access-token-expiration: 15m
       refresh-token-expiration: 7d
 

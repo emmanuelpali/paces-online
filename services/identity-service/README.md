@@ -1,98 +1,46 @@
 # PacesOnline Identity Service
 
-The Identity Service is the authentication and identity boundary for PacesOnline.
+The Identity Service owns user identity and authentication for PacesOnline.
 
-At the current stage of the project, the service provides the Spring Boot foundation and configuration strategy that later authentication and persistence work will build on.
+Current capabilities:
 
-## Current Capabilities
+* User registration
+* Password hashing and verification
+* PostgreSQL persistence
+* Flyway database migrations
+* User login
+* RSA-signed JWT access-token issuance
+* OpenAPI contract for Identity APIs
 
-- Standalone Spring Boot application
-- Spring Boot Actuator
-- Health, liveness, and readiness endpoints
-- Profile-based configuration
-- Type-safe token configuration with `@ConfigurationProperties`
-- Configuration validation and fail-fast startup
-- Automated configuration tests
-
-Authentication, JWT generation, user persistence through JPA, and user management are not implemented yet.
+Refresh tokens, authenticated profile access, logout, and authorization are implemented in later issues.
 
 ## Requirements
 
-- Java 25
-- Maven Wrapper included in the repository
+* Java 25
+* Docker
+* Maven Wrapper included in the project
 
 ## Build and Test
 
-From the `services/identity-service` directory:
+From `services/identity-service`:
 
-### Windows PowerShell
+### Windows
 
 ```powershell
 .\mvnw.cmd clean verify
 ```
 
-### macOS or Linux
+### macOS / Linux
 
 ```bash
 ./mvnw clean verify
 ```
 
-A successful build should end with:
-
-```text
-BUILD SUCCESS
-```
-
-## Run Locally
-
-The Identity Service requires token configuration. For local development, use the `local` profile.
-
-### Windows PowerShell
-
-```powershell
-$env:SPRING_PROFILES_ACTIVE="local"
-.\mvnw.cmd spring-boot:run
-```
-
-### macOS or Linux
-
-```bash
-SPRING_PROFILES_ACTIVE=local ./mvnw spring-boot:run
-```
-
-By default, the service starts at:
-
-```text
-http://localhost:8080
-```
-
-When finished in PowerShell, remove the profile environment variable:
-
-```powershell
-Remove-Item Env:SPRING_PROFILES_ACTIVE
-```
-
-## Health Endpoints
-
-With the service running, the main health endpoint is:
-
-```text
-GET /actuator/health
-```
-
-Example:
-
-```powershell
-Invoke-RestMethod http://localhost:8080/actuator/health
-```
-
-The service also exposes Spring Boot liveness and readiness health groups for future container and Kubernetes probes.
+Database integration tests use Testcontainers and require Docker to be running.
 
 ## Configuration
 
-The service uses Spring Boot externalized configuration.
-
-Configuration is split across:
+Configuration is split by Spring profile:
 
 ```text
 src/main/resources/
@@ -104,151 +52,19 @@ src/test/resources/
 └── application-test.yml
 ```
 
-### Base Configuration
+Profiles are activated externally rather than being hardcoded in application configuration.
 
-`application.yml` contains configuration shared across environments, including:
-
-- Application name
-- Server port
-- Actuator endpoint exposure
-
-No Spring profile is hardcoded as active.
-
-### Local Profile
-
-`application-local.yml` contains safe developer defaults.
-
-The local token configuration currently includes:
-
-```yaml
-paces-online:
-  security:
-    token:
-      issuer: paces-online-local
-      access-token-expiration: 15m
-      refresh-token-expiration: 7d
-```
-
-These values are intended only for local development and must never contain real production secrets.
-
-### Test Profile
-
-Automated Spring Boot tests use the `test` profile.
-
-Test configuration is stored in:
-
-```text
-src/test/resources/application-test.yml
-```
-
-The application-context test activates it using:
-
-```java
-@ActiveProfiles("test")
-```
-
-The test profile contains deterministic values so tests do not depend on a developer's local environment.
-
-### Production Profile
-
-Activate the production profile externally:
-
-```text
-SPRING_PROFILES_ACTIVE=prod
-```
-
-The production profile requires token configuration to be supplied through environment variables:
-
-```text
-JWT_ISSUER
-JWT_ACCESS_TOKEN_EXPIRATION
-JWT_REFRESH_TOKEN_EXPIRATION
-```
-
-Example non-secret values:
-
-```text
-JWT_ISSUER=paces-online
-JWT_ACCESS_TOKEN_EXPIRATION=15m
-JWT_REFRESH_TOKEN_EXPIRATION=7d
-```
-
-The production profile intentionally provides no fallback values for required token settings.
-
-If required configuration is missing or invalid, the application fails during startup.
-
-In a future Kubernetes or OpenShift deployment, runtime values will be supplied externally through mechanisms such as ConfigMaps and Secrets.
-
-## Token Configuration
-
-Application-specific token settings are bound to `TokenProperties` using:
-
-```java
-@ConfigurationProperties(prefix = "paces-online.security.token")
-```
-
-The properties are represented using appropriate Java types:
-
-- `issuer` → `String`
-- `accessTokenExpiration` → `Duration`
-- `refreshTokenExpiration` → `Duration`
-
-Configuration validation ensures that:
-
-- The issuer is not blank
-- Access-token expiration is present and greater than zero
-- Refresh-token expiration is present and greater than zero
-- Refresh-token expiration is longer than access-token expiration
-
-Invalid configuration prevents the application from starting.
-
-This issue defines token configuration policy only. JWT generation, signing, verification, and signing-key configuration are implemented in later work.
-
-## Server Port
-
-The HTTP port can be overridden with:
-
-```text
-SERVER_PORT
-```
-
-Example in PowerShell:
+For local development:
 
 ```powershell
-$env:SERVER_PORT="9090"
+$env:SPRING_PROFILES_ACTIVE="local"
 ```
 
-If `SERVER_PORT` is not provided, the service uses port `8080`.
+## PostgreSQL
 
-## Secrets
+The Identity Service uses PostgreSQL for persistence and Flyway for schema migrations.
 
-Real credentials and secrets must never be committed to Git.
-
-This includes:
-
-- Passwords
-- JWT signing keys
-- Private keys
-- Access tokens
-- Refresh tokens
-- Database credentials
-
-Production secrets must be supplied by the deployment environment.
-
-## Project Context
-
-PacesOnline is intentionally kept focused on two goals:
-
-1. Build a strong intermediate-level full-stack portfolio project.
-2. Reinforce practical Kubernetes skills for CKAD preparation.
-
-The project prefers built-in Spring Boot and Kubernetes capabilities over unnecessary custom abstractions.
-
-### PostgreSQL and Flyway
-
-The Identity Service uses PostgreSQL for persistence and Flyway for database schema migrations.
-
-For local development, the default datasource configuration is:
+Local defaults:
 
 ```text
 Database: pacesonline_identity
@@ -258,7 +74,7 @@ Username: pacesonline
 Password: pacesonline
 ```
 
-The local datasource can be overridden with:
+The datasource can be overridden with:
 
 ```text
 DB_URL
@@ -272,56 +88,177 @@ For example, if PostgreSQL is exposed on host port `5433`:
 $env:DB_URL="jdbc:postgresql://localhost:5433/pacesonline_identity"
 ```
 
-Production database configuration has no fallback values and must be supplied by the deployment environment.
+Production datasource configuration has no fallback credentials and must be supplied externally.
 
-Flyway migrations are stored under:
+## Flyway
+
+Database migrations are stored under:
 
 ```text
 src/main/resources/db/migration
 ```
 
-The initial migration is:
+Flyway applies pending migrations when the application starts against a configured datasource.
 
-```text
-V1__create_users_table.sql
+Hibernate validates JPA mappings against the Flyway-managed schema and does not create or update the schema.
+
+## Running Locally
+
+Start PostgreSQL, activate the local profile, and run:
+
+```powershell
+$env:SPRING_PROFILES_ACTIVE="local"
+.\mvnw.cmd spring-boot:run
 ```
 
-Flyway automatically applies pending migrations when the application starts with a configured datasource.
+If PostgreSQL is running on a non-default host port:
 
-Database integration tests use Testcontainers to start a temporary PostgreSQL instance. This allows `clean verify` to test the actual PostgreSQL and Flyway integration without requiring a manually configured test database. Docker must be available when running these integration tests.
+```powershell
+$env:DB_URL="jdbc:postgresql://localhost:5433/pacesonline_identity"
+.\mvnw.cmd spring-boot:run
+```
+
+The service runs on port `8080` by default.
+
+The port can be overridden with:
+
+```text
+SERVER_PORT
+```
+
+Health is available at:
+
+```text
+GET /actuator/health
+```
 
 ## User Registration
 
-The Identity Service supports user registration through:
-
+```text
 POST /api/v1/auth/register
+```
 
 Example request:
 
+```json
 {
   "email": "runner@example.com",
   "password": "strong-password"
 }
+```
 
-A successful registration returns 201 Created:
+A successful registration returns `201 Created` with the user's ID, normalized email address, and creation timestamp.
 
+Passwords are encoded using Spring Security's configured `PasswordEncoder`. Raw passwords and password hashes are never returned by the API.
+
+Invalid requests return `400 Bad Request`.
+
+Attempting to register an existing email returns `409 Conflict`.
+
+## Login
+
+```text
+POST /api/v1/auth/login
+```
+
+Example request:
+
+```json
 {
-  "id": "e3a9ad9c-4d7c-4c66-9787-90930f746665",
   "email": "runner@example.com",
-  "createdAt": "2026-08-14T01:45:43Z"
+  "password": "strong-password"
 }
+```
 
-Registration behavior:
+Successful authentication returns `200 OK`:
 
-Email addresses are normalized to lowercase before persistence.
-Passwords are encoded using the configured Spring Security PasswordEncoder.
-Raw passwords are never persisted or returned by the API.
-Invalid registration requests return 400 Bad Request.
-Registering an email that already exists returns 409 Conflict.
-PostgreSQL's unique email constraint remains the final protection against concurrent duplicate registrations.
+```json
+{
+  "accessToken": "<signed-jwt>",
+  "tokenType": "Bearer",
+  "expiresIn": 900
+}
+```
 
-The Identity Service OpenAPI contract is maintained at:
+Unknown users and incorrect passwords both return `401 Unauthorized` without revealing which credential was incorrect.
 
+## JWT Access Tokens
+
+Access tokens are signed using RSA with `RS256`.
+
+Tokens include the standard claims:
+
+```text
+iss   issuer
+sub   user UUID
+iat   issued-at timestamp
+exp   expiration timestamp
+jti   unique token identifier
+```
+
+Issuer and expiration are configured through:
+
+```text
+paces-online.security.token.*
+```
+
+Local and test profiles generate temporary RSA key pairs when the application starts.
+
+Production signing keys are supplied externally through:
+
+```text
+JWT_PRIVATE_KEY_LOCATION
+JWT_PUBLIC_KEY_LOCATION
+```
+
+Production private keys must not be committed to the repository.
+
+## OpenAPI
+
+The Identity Service contract is maintained at:
+
+```text
 contracts/identity-api/openapi.yml
+```
 
-The Identity Service implements this contract with handwritten controller code. Server-side code generation is not used for the Identity Service.
+It currently documents:
+
+```text
+POST /api/v1/auth/register
+POST /api/v1/auth/login
+```
+
+Identity Service controllers are implemented by hand.
+
+The contract will be consumed later by the BFF to generate its Identity Service Java client.
+
+## Testing
+
+The service uses several test levels:
+
+```text
+Unit tests
+→ business behavior with isolated collaborators
+
+MVC tests
+→ HTTP requests, validation, response bodies, and status codes
+
+Integration tests
+→ Spring Boot + JPA + Flyway + PostgreSQL through Testcontainers
+```
+
+Run the complete suite with:
+
+```powershell
+.\mvnw.cmd clean verify
+```
+
+## Secrets
+
+Do not commit production:
+
+* database credentials
+* JWT private keys
+* other deployment secrets
+
+Production values are supplied through the runtime environment and, later, Kubernetes configuration.
