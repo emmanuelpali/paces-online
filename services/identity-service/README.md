@@ -325,3 +325,170 @@ The Identity Service OpenAPI contract is maintained at:
 contracts/identity-api/openapi.yml
 
 The Identity Service implements this contract with handwritten controller code. Server-side code generation is not used for the Identity Service.
+
+# Login and JWT Update
+
+## Authentication
+
+The Identity Service currently supports:
+
+* user registration
+* password hashing and verification
+* user login
+* JWT access-token issuance
+
+Refresh tokens, authenticated profile access, and logout are implemented in later issues.
+
+### Login
+
+Authenticate a registered user with:
+
+```text
+POST /api/v1/auth/login
+```
+
+Example request:
+
+```json
+{
+  "email": "runner@example.com",
+  "password": "strong-password"
+}
+```
+
+Successful authentication returns `200 OK`:
+
+```json
+{
+  "accessToken": "<signed-jwt>",
+  "tokenType": "Bearer",
+  "expiresIn": 900
+}
+```
+
+The submitted email is normalized before user lookup.
+
+Invalid credentials return:
+
+```text
+401 Unauthorized
+```
+
+The response does not reveal whether authentication failed because the email was unknown or because the password was incorrect.
+
+Structurally invalid requests return:
+
+```text
+400 Bad Request
+```
+
+### Password Verification
+
+Passwords are verified using Spring Security's `PasswordEncoder`.
+
+Raw passwords are never:
+
+* stored in PostgreSQL
+* logged
+* returned by the API
+* included in JWTs
+
+The stored password hash created during registration is used during login with `PasswordEncoder.matches(...)`.
+
+### JWT Access Tokens
+
+Successful login produces a signed JWT access token.
+
+Access tokens are signed using RSA with `RS256`.
+
+The token contains the standard claims:
+
+```text
+iss   issuer
+sub   user UUID
+iat   issued-at timestamp
+exp   expiration timestamp
+jti   unique token identifier
+```
+
+The JWT subject (`sub`) contains the user's UUID rather than their email address.
+
+Token issuer and expiration are configured through the existing token configuration:
+
+```yaml
+paces-online:
+  security:
+    token:
+      issuer: ...
+      access-token-expiration: ...
+```
+
+The local profile currently uses:
+
+```text
+issuer: https://identity.pacesonline.local
+```
+
+The test profile uses:
+
+```text
+issuer: https://identity.pacesonline.test
+```
+
+The access-token lifetime is returned to clients through the `expiresIn` response field in seconds.
+
+### JWT Signing Keys
+
+Local and automated test environments generate a temporary RSA key pair when the application starts.
+
+```text
+local/test startup
+        ↓
+generate RSA key pair
+        ↓
+private key signs JWT
+public key verifies JWT
+```
+
+Restarting the application generates a new local/test key pair, so previously issued development tokens may no longer be verifiable after a restart.
+
+Production does not generate temporary signing keys.
+
+Production RSA key material must be supplied externally using:
+
+```text
+JWT_PRIVATE_KEY_LOCATION
+JWT_PUBLIC_KEY_LOCATION
+```
+
+Example resource locations:
+
+```text
+file:/etc/pacesonline/keys/private.pem
+file:/etc/pacesonline/keys/public.pem
+```
+
+The private key must be PKCS#8 PEM format.
+
+The public key is loaded as an X.509 RSA public key.
+
+Production signing keys must never be committed to the repository.
+
+### OpenAPI
+
+The Identity Service API contract is maintained at:
+
+```text
+contracts/identity-api/openapi.yml
+```
+
+The contract currently documents:
+
+```text
+POST /api/v1/auth/register
+POST /api/v1/auth/login
+```
+
+Identity Service controllers remain handwritten.
+
+The contract will later be used by the BFF to generate its Identity Service Java client.

@@ -1,4 +1,4 @@
-package com.pacesonline.identityservice.auth;
+package com.pacesonline.identityservice.auth.registration;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

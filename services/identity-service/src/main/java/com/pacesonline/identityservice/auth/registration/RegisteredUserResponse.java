@@ -1,4 +1,4 @@
-package com.pacesonline.identityservice.auth;
+package com.pacesonline.identityservice.auth.registration;
 
 import java.time.Instant;
 import java.util.UUID;

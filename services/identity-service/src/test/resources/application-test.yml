@@ -1,7 +1,7 @@
 paces-online:
   security:
     token:
-      issuer: paces-online-test
+      issuer: https://identity.pacesonline.test
       access-token-expiration: 5m
       refresh-token-expiration: 1h
 

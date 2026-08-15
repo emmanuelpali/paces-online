@@ -1,5 +1,7 @@
-package com.pacesonline.identityservice.auth;
+package com.pacesonline.identityservice.auth.registration;
 
+import com.pacesonline.identityservice.auth.registration.EmailAlreadyRegisteredException;
+import com.pacesonline.identityservice.auth.registration.RegistrationService;
 import com.pacesonline.identityservice.user.User;
 import com.pacesonline.identityservice.user.UserRepository;
 import org.junit.jupiter.api.Test;
