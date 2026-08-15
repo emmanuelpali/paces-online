@@ -16,6 +16,9 @@ public class LoginService {
     private final PasswordEncoder passwordEncoder;
     private final AccessTokenService accessTokenService;
     private final TokenProperties tokenProperties;
+    private static final String DUMMY_PASSWORD = "user-not-found-password";
+
+    private final String dummyPasswordHash;
 
     public LoginService(
             UserRepository userRepository,
@@ -27,6 +30,7 @@ public class LoginService {
         this.passwordEncoder = passwordEncoder;
         this.accessTokenService = accessTokenService;
         this.tokenProperties = tokenProperties;
+        this.dummyPasswordHash = passwordEncoder.encode(DUMMY_PASSWORD);
     }
 
     public LoginResult login(String email, String password) {
@@ -34,12 +38,13 @@ public class LoginService {
                 email.trim().toLowerCase(Locale.ROOT);
 
         User user = userRepository.findByEmail(normalizedEmail)
-                .orElseThrow(InvalidCredentialsException::new);
+                .orElse(null);
 
-        if (!passwordEncoder.matches(
-                password,
-                user.getPasswordHash()
-        )) {
+        if (user == null) {
+            passwordEncoder.matches(password, dummyPasswordHash);
+            throw new InvalidCredentialsException();
+        }
+        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new InvalidCredentialsException();
         }
         String accessToken = accessTokenService.generateAccessToken(user);

@@ -1,8 +1,5 @@
 package com.pacesonline.identityservice.auth.login;
 
-import com.pacesonline.identityservice.auth.login.InvalidCredentialsException;
-import com.pacesonline.identityservice.auth.login.LoginResult;
-import com.pacesonline.identityservice.auth.login.LoginService;
 import com.pacesonline.identityservice.auth.token.AccessTokenService;
 import com.pacesonline.identityservice.config.TokenProperties;
 import com.pacesonline.identityservice.user.User;
@@ -21,6 +18,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -48,6 +46,9 @@ class LoginServiceTest {
                 null,
                 null
         );
+
+        when(passwordEncoder.encode(anyString()))
+        .thenReturn("dummy-password-hash");
 
         loginService = new LoginService(
                 userRepository,
@@ -114,8 +115,10 @@ class LoginServiceTest {
                 .isInstanceOf(InvalidCredentialsException.class)
                 .hasMessage("Invalid email or password");
 
-        verify(passwordEncoder, never())
-                .matches(any(), any());
+        verify(passwordEncoder).matches(
+        "strong-password",
+        "dummy-password-hash"
+        );
 
         verify(accessTokenService, never())
                 .generateAccessToken(any());
