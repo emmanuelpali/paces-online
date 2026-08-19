@@ -6,6 +6,9 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import com.pacesonline.identityservice.config.SecurityConfiguration;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 
 import com.pacesonline.identityservice.auth.login.InvalidCredentialsException;
 import com.pacesonline.identityservice.auth.login.LoginController;
@@ -18,6 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(LoginController.class)
+@Import(SecurityConfiguration.class)
 class LoginControllerTest {
 
     @Autowired
@@ -25,6 +29,9 @@ class LoginControllerTest {
 
     @MockitoBean
     private LoginService loginService;
+
+    @MockitoBean
+    private JwtDecoder jwtDecoder;
 
     @Test
     void logsInWithValidCredentials() throws Exception {
