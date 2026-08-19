@@ -23,8 +23,6 @@ import org.springframework.security.converter.RsaKeyConverters;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.interfaces.RSAPrivateKey;
-import java.security.interfaces.RSAPublicKey;
 
 @Configuration(proxyBeanMethods = false)
 public class JwtConfiguration {
