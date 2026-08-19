@@ -4,43 +4,42 @@ The Identity Service owns user identity and authentication for PacesOnline.
 
 Current capabilities:
 
-* User registration
-* Password hashing and verification
-* PostgreSQL persistence
-* Flyway database migrations
-* User login
-* RSA-signed JWT access-token issuance
-* OpenAPI contract for Identity APIs
+- User registration
+- Password hashing and verification
+- PostgreSQL persistence with Flyway migrations
+- User login
+- RSA-signed JWT access-token issuance
+- JWT access-token validation
+- Authenticated user profile access
+- OpenAPI contract for Identity APIs
 
-Refresh tokens, authenticated profile access, logout, and authorization are implemented in later issues.
+Refresh tokens, logout, and role-based authorization are planned for later issues.
 
 ## Requirements
 
-* Java 25
-* Docker
-* Maven Wrapper included in the project
+- Java 25
+- Docker
+- Maven Wrapper included in the project
 
 ## Build and Test
 
 From `services/identity-service`:
 
-### Windows
-
 ```powershell
 .\mvnw.cmd clean verify
 ```
 
-### macOS / Linux
+On macOS/Linux:
 
 ```bash
 ./mvnw clean verify
 ```
 
-Database integration tests use Testcontainers and require Docker to be running.
+Integration tests use Testcontainers, so Docker must be running.
 
 ## Configuration
 
-Configuration is split by Spring profile:
+Spring profiles:
 
 ```text
 src/main/resources/
@@ -52,7 +51,7 @@ src/test/resources/
 └── application-test.yml
 ```
 
-Profiles are activated externally rather than being hardcoded in application configuration.
+Profiles are activated externally.
 
 For local development:
 
@@ -61,8 +60,6 @@ $env:SPRING_PROFILES_ACTIVE="local"
 ```
 
 ## PostgreSQL
-
-The Identity Service uses PostgreSQL for persistence and Flyway for schema migrations.
 
 Local defaults:
 
@@ -74,7 +71,7 @@ Username: pacesonline
 Password: pacesonline
 ```
 
-The datasource can be overridden with:
+Datasource overrides:
 
 ```text
 DB_URL
@@ -82,25 +79,23 @@ DB_USERNAME
 DB_PASSWORD
 ```
 
-For example, if PostgreSQL is exposed on host port `5433`:
+Example for PostgreSQL exposed on host port `5433`:
 
 ```powershell
 $env:DB_URL="jdbc:postgresql://localhost:5433/pacesonline_identity"
 ```
 
-Production datasource configuration has no fallback credentials and must be supplied externally.
+Production datasource values must be supplied externally.
 
-## Flyway
+## Database Migrations
 
-Database migrations are stored under:
+Flyway migrations are stored under:
 
 ```text
 src/main/resources/db/migration
 ```
 
-Flyway applies pending migrations when the application starts against a configured datasource.
-
-Hibernate validates JPA mappings against the Flyway-managed schema and does not create or update the schema.
+Flyway owns schema evolution. Hibernate validates JPA mappings against the migrated schema rather than creating or updating it.
 
 ## Running Locally
 
@@ -111,28 +106,21 @@ $env:SPRING_PROFILES_ACTIVE="local"
 .\mvnw.cmd spring-boot:run
 ```
 
-If PostgreSQL is running on a non-default host port:
-
-```powershell
-$env:DB_URL="jdbc:postgresql://localhost:5433/pacesonline_identity"
-.\mvnw.cmd spring-boot:run
-```
-
-The service runs on port `8080` by default.
-
-The port can be overridden with:
+The service runs on port `8080` by default. Override it with:
 
 ```text
 SERVER_PORT
 ```
 
-Health is available at:
+Health endpoint:
 
 ```text
 GET /actuator/health
 ```
 
-## User Registration
+## API
+
+### Register User
 
 ```text
 POST /api/v1/auth/register
@@ -147,15 +135,13 @@ Example request:
 }
 ```
 
-A successful registration returns `201 Created` with the user's ID, normalized email address, and creation timestamp.
+A successful registration returns `201 Created`.
 
-Passwords are encoded using Spring Security's configured `PasswordEncoder`. Raw passwords and password hashes are never returned by the API.
+Invalid requests return `400 Bad Request`. Registering an existing email returns `409 Conflict`.
 
-Invalid requests return `400 Bad Request`.
+Passwords are encoded with Spring Security's configured `PasswordEncoder`. Raw passwords and password hashes are never returned by the API.
 
-Attempting to register an existing email returns `409 Conflict`.
-
-## Login
+### Login
 
 ```text
 POST /api/v1/auth/login
@@ -180,13 +166,41 @@ Successful authentication returns `200 OK`:
 }
 ```
 
-Unknown users and incorrect passwords both return `401 Unauthorized` without revealing which credential was incorrect.
+Unknown users and incorrect passwords both return `401 Unauthorized`.
 
-## JWT Access Tokens
+### Authenticated User Profile
 
-Access tokens are signed using RSA with `RS256`.
+```text
+GET /api/v1/users/user
+```
 
-Tokens include the standard claims:
+Send the access token as:
+
+```text
+Authorization: Bearer <access-token>
+```
+
+The endpoint returns the profile belonging to the authenticated user.
+
+The user's UUID comes from the validated JWT `sub` claim and is used to load the current profile from PostgreSQL.
+
+Example response:
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "email": "runner@example.com",
+  "createdAt": "2026-08-18T15:00:00Z"
+}
+```
+
+Missing or invalid access tokens return `401 Unauthorized`. Password information is never included in the response.
+
+## JWT
+
+Access tokens are signed with RSA using `RS256`.
+
+Tokens contain:
 
 ```text
 iss   issuer
@@ -196,13 +210,13 @@ exp   expiration timestamp
 jti   unique token identifier
 ```
 
-Issuer and expiration are configured through:
+Issuer and token lifetimes are configured through:
 
 ```text
 paces-online.security.token.*
 ```
 
-Local and test profiles generate temporary RSA key pairs when the application starts.
+Local and test profiles generate temporary RSA key pairs at application startup.
 
 Production signing keys are supplied externally through:
 
@@ -213,6 +227,14 @@ JWT_PUBLIC_KEY_LOCATION
 
 Production private keys must not be committed to the repository.
 
+Protected endpoints use Spring Security OAuth2 Resource Server support. Incoming Bearer tokens are validated for:
+
+- RSA signature using the trusted public key
+- expiration
+- issuer
+
+Authentication is stateless; clients send the Bearer token with each protected request.
+
 ## OpenAPI
 
 The Identity Service contract is maintained at:
@@ -221,33 +243,29 @@ The Identity Service contract is maintained at:
 contracts/identity-api/openapi.yml
 ```
 
-It currently documents:
+Current operations:
 
 ```text
 POST /api/v1/auth/register
 POST /api/v1/auth/login
+GET  /api/v1/users/user
 ```
 
-Identity Service controllers are implemented by hand.
+The authenticated profile operation uses the `bearerAuth` JWT security scheme.
 
-The contract will be consumed later by the BFF to generate its Identity Service Java client.
+Identity Service controllers are handwritten. The contract will later be consumed by the BFF to generate its Identity Service Java client.
 
 ## Testing
 
-The service uses several test levels:
+The service uses:
 
-```text
-Unit tests
-→ business behavior with isolated collaborators
+- unit tests for isolated business behavior
+- MVC tests for HTTP validation, security behavior, responses, and status codes
+- integration tests with Spring Boot, Spring Security, JPA, Flyway, PostgreSQL, and Testcontainers
 
-MVC tests
-→ HTTP requests, validation, response bodies, and status codes
+The integration suite covers the authenticated profile flow with a real signed JWT and rejection of missing, malformed, expired, wrong-issuer, and untrusted-key tokens.
 
-Integration tests
-→ Spring Boot + JPA + Flyway + PostgreSQL through Testcontainers
-```
-
-Run the complete suite with:
+Run the full suite with:
 
 ```powershell
 .\mvnw.cmd clean verify
@@ -257,8 +275,8 @@ Run the complete suite with:
 
 Do not commit production:
 
-* database credentials
-* JWT private keys
-* other deployment secrets
+- database credentials
+- JWT private keys
+- other deployment secrets
 
 Production values are supplied through the runtime environment and, later, Kubernetes configuration.
