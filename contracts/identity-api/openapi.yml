@@ -65,22 +65,22 @@ paths:
         '401':
           description: Invalid email or password
   /api/v1/users/user:
-  get:
-    tags:
-      - Users
-    summary: Get authenticated user profile
-    operationId: getAuthenticatedUser
-    security:
-      - bearerAuth: []
-    responses:
-      '200':
-        description: Authenticated user profile
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UserProfileResponse'
-      '401':
-        description: Authentication required or access token is invalid        
+    get:
+      tags:
+        - Users
+      summary: Get authenticated user profile
+      operationId: getAuthenticatedUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Authenticated user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '401':
+          description: Authentication required or access token is invalid     
 components:
   schemas:
     LoginRequest:
@@ -165,9 +165,9 @@ components:
         createdAt:
           type: string
           format: date-time
-  securitySchemes:          
-    securitySchemes:
-        bearerAuth:
-          type: http
-          scheme: bearer
-          bearerFormat: JWT
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

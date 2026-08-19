@@ -40,10 +40,6 @@ class UserProfileServiceTest {
         when(userRepository.findById(userId))
                 .thenReturn(Optional.of(user));
 
-
-        when(userRepository.findById(userId))
-                .thenReturn(Optional.of(user));
-
         UserProfileResponse result =
                 userProfileService.getUserProfile(userId);
 
