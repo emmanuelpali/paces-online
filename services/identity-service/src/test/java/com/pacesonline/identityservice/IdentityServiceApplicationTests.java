@@ -26,6 +26,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import com.pacesonline.identityservice.auth.login.LoginResult;
 import com.pacesonline.identityservice.auth.login.LoginService;
+import com.pacesonline.identityservice.auth.refreshtoken.RefreshTokenGenerator;
 import com.pacesonline.identityservice.auth.registration.RegistrationService;
 import com.pacesonline.identityservice.user.User;
 import com.pacesonline.identityservice.user.UserRepository;
@@ -68,6 +69,9 @@ class IdentityServiceApplicationTests {
     @Autowired
     private KeyPair jwtKeyPair;
 
+    @Autowired
+    private RefreshTokenGenerator refreshTokenGenerator;
+
     private String createToken(JwtEncoder encoder, UUID userId,
         String issuer, Instant issuedAt, Instant expiresAt
         ) {
@@ -99,6 +103,21 @@ class IdentityServiceApplicationTests {
                 FROM information_schema.tables
                 WHERE table_schema = 'public'
                   AND table_name = 'users'
+                """,
+                Integer.class
+        );
+
+        assertThat(tableCount).isEqualTo(1);
+    }
+
+    @Test
+    void flywayCreatesRefreshTokensTable() {
+        Integer tableCount = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
+                AND table_name = 'refresh_tokens'
                 """,
                 Integer.class
         );
@@ -139,7 +158,7 @@ class IdentityServiceApplicationTests {
     }
 
     @Test
-    void registeredUserCanLoginAndReceiveVerifiableAccessToken() {
+    void registeredUserCanLoginAndReceiveTokenPair() {
         String email = "login-integration@example.com";
         String password = "strong-password";
 
@@ -163,7 +182,9 @@ class IdentityServiceApplicationTests {
         Jwt jwt = jwtDecoder.decode(result.accessToken());
 
         assertThat(result.accessToken()).isNotBlank();
-        assertThat(result.expiresIn()).isEqualTo(300);
+        assertThat(result.refreshToken()).isNotBlank();
+        assertThat(result.accessTokenExpiresIn()).isEqualTo(300);
+        assertThat(result.refreshTokenExpiresIn()).isEqualTo(3600);
 
         assertThat(jwt.getIssuer().toString())
                 .isEqualTo("https://identity.pacesonline.test");
@@ -174,7 +195,26 @@ class IdentityServiceApplicationTests {
         assertThat(jwt.getIssuedAt()).isNotNull();
         assertThat(jwt.getExpiresAt()).isNotNull();
         assertThat(jwt.getId()).isNotBlank();
-     }
+
+        String persistedTokenHash = jdbcTemplate.queryForObject(
+                """
+                SELECT token_hash
+                FROM refresh_tokens
+                WHERE user_id = ?
+                """,
+                String.class,
+                registeredUser.getId()
+        );
+
+        assertThat(persistedTokenHash).isNotBlank();
+        assertThat(persistedTokenHash).hasSize(64);
+        assertThat(persistedTokenHash)
+                .isNotEqualTo(result.refreshToken());
+
+        assertThat(persistedTokenHash).isEqualTo(
+                refreshTokenGenerator.hash(result.refreshToken())
+        );
+    }
 
      @Test
      void authenticatedUserCanRetrieveOwnProfile() throws Exception {

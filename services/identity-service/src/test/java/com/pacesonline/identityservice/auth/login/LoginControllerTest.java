@@ -41,7 +41,9 @@ class LoginControllerTest {
         )).thenReturn(
                 new LoginResult(
                         "signed-access-token",
-                        900
+                        "raw-refresh-token",
+                        900,
+                        604800
                 )
         );
 
@@ -56,10 +58,14 @@ class LoginControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken")
                         .value("signed-access-token"))
+                .andExpect(jsonPath("$.refreshToken")
+                        .value("raw-refresh-token"))
                 .andExpect(jsonPath("$.tokenType")
                         .value("Bearer"))
-                .andExpect(jsonPath("$.expiresIn")
+                .andExpect(jsonPath("$.accessTokenExpiresIn")
                         .value(900))
+                .andExpect(jsonPath("$.refreshTokenExpiresIn")
+                        .value(604800))
                 .andExpect(jsonPath("$.password").doesNotExist())
                 .andExpect(jsonPath("$.passwordHash").doesNotExist());
     }

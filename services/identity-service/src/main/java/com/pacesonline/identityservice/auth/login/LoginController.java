@@ -32,8 +32,10 @@ public class LoginController {
 
         return new LoginResponse(
                 result.accessToken(),
+                result.refreshToken(),
                 TOKEN_TYPE,
-                result.expiresIn()
+                result.accessTokenExpiresIn(),
+                result.refreshTokenExpiresIn()
         );
     }
 }
