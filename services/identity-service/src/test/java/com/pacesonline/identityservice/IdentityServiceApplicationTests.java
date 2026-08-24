@@ -30,7 +30,11 @@ import com.pacesonline.identityservice.auth.refreshtoken.RefreshTokenGenerator;
 import com.pacesonline.identityservice.auth.registration.RegistrationService;
 import com.pacesonline.identityservice.user.User;
 import com.pacesonline.identityservice.user.UserRepository;
+import com.pacesonline.identityservice.auth.refreshtoken.InvalidRefreshTokenException;
+import com.pacesonline.identityservice.auth.refreshtoken.RefreshTokenRotationResult;
+import com.pacesonline.identityservice.auth.refreshtoken.RefreshTokenService;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.security.KeyPair;
@@ -71,6 +75,9 @@ class IdentityServiceApplicationTests {
 
     @Autowired
     private RefreshTokenGenerator refreshTokenGenerator;
+
+    @Autowired
+    private RefreshTokenService refreshTokenService;
 
     private String createToken(JwtEncoder encoder, UUID userId,
         String issuer, Instant issuedAt, Instant expiresAt
@@ -354,5 +361,191 @@ class IdentityServiceApplicationTests {
                                 )
                 )
                 .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void validRefreshTokenRotatesWithinSameFamily() {
+        String email = "refresh-integration@example.com";
+        String password = "strong-password";
+
+        User registeredUser = registrationService.register(
+                email,
+                password
+        );
+
+        LoginResult loginResult = loginService.login(
+                email,
+                password
+        );
+
+        String originalHash = refreshTokenGenerator.hash(
+                loginResult.refreshToken()
+        );
+
+        UUID familyId = jdbcTemplate.queryForObject(
+                """
+                SELECT family_id
+                FROM refresh_tokens
+                WHERE token_hash = ?
+                """,
+                UUID.class,
+                originalHash
+        );
+
+        RefreshTokenRotationResult rotationResult =
+                refreshTokenService.rotate(
+                        loginResult.refreshToken()
+                );
+
+        String replacementHash = refreshTokenGenerator.hash(
+                rotationResult.refreshToken()
+        );
+
+        assertThat(rotationResult.accessToken()).isNotBlank();
+        assertThat(rotationResult.refreshToken()).isNotBlank();
+        assertThat(rotationResult.refreshToken())
+                .isNotEqualTo(loginResult.refreshToken());
+
+        assertThat(rotationResult.accessTokenExpiresIn())
+                .isEqualTo(300);
+
+        assertThat(rotationResult.refreshTokenExpiresIn())
+                .isBetween(1L, 3600L);
+
+        Boolean originalWasConsumed = jdbcTemplate.queryForObject(
+                """
+                SELECT consumed_at IS NOT NULL
+                FROM refresh_tokens
+                WHERE token_hash = ?
+                """,
+                Boolean.class,
+                originalHash
+        );
+
+        UUID replacementFamilyId = jdbcTemplate.queryForObject(
+                """
+                SELECT family_id
+                FROM refresh_tokens
+                WHERE token_hash = ?
+                """,
+                UUID.class,
+                replacementHash
+        );
+
+        Long familyTokenCount = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM refresh_tokens
+                WHERE family_id = ?
+                """,
+                Long.class,
+                familyId
+        );
+
+        Long activeTokenCount = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM refresh_tokens
+                WHERE family_id = ?
+                AND consumed_at IS NULL
+                AND revoked_at IS NULL
+                """,
+                Long.class,
+                familyId
+        );
+
+        Long distinctExpirationCount = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(DISTINCT expires_at)
+                FROM refresh_tokens
+                WHERE family_id = ?
+                """,
+                Long.class,
+                familyId
+        );
+
+        assertThat(originalWasConsumed).isTrue();
+        assertThat(replacementFamilyId).isEqualTo(familyId);
+        assertThat(familyTokenCount).isEqualTo(2);
+        assertThat(activeTokenCount).isEqualTo(1);
+        assertThat(distinctExpirationCount).isEqualTo(1);
+
+        assertThat(replacementHash)
+                .isNotEqualTo(rotationResult.refreshToken());
+        }
+
+
+        @Test
+        void reusingConsumedRefreshTokenRevokesFamily() {
+        String email = "refresh-reuse@example.com";
+        String password = "strong-password";
+
+        registrationService.register(email, password);
+
+        LoginResult loginResult = loginService.login(
+                email,
+                password
+        );
+
+        String originalHash = refreshTokenGenerator.hash(
+                loginResult.refreshToken()
+        );
+
+        UUID familyId = jdbcTemplate.queryForObject(
+                """
+                SELECT family_id
+                FROM refresh_tokens
+                WHERE token_hash = ?
+                """,
+                UUID.class,
+                originalHash
+        );
+
+        RefreshTokenRotationResult rotationResult =
+                refreshTokenService.rotate(
+                        loginResult.refreshToken()
+                );
+
+        assertThatThrownBy(() ->
+                refreshTokenService.rotate(
+                        loginResult.refreshToken()
+                )
+        ).isInstanceOf(InvalidRefreshTokenException.class);
+
+        String replacementHash = refreshTokenGenerator.hash(
+                rotationResult.refreshToken()
+        );
+
+        Boolean replacementWasRevoked =
+                jdbcTemplate.queryForObject(
+                        """
+                        SELECT revoked_at IS NOT NULL
+                        FROM refresh_tokens
+                        WHERE token_hash = ?
+                        """,
+                        Boolean.class,
+                        replacementHash
+                );
+
+        Long unrevokedFamilyTokenCount =
+                jdbcTemplate.queryForObject(
+                        """
+                        SELECT COUNT(*)
+                        FROM refresh_tokens
+                        WHERE family_id = ?
+                        AND revoked_at IS NULL
+                        """,
+                        Long.class,
+                        familyId
+                );
+
+        assertThat(replacementWasRevoked).isTrue();
+        assertThat(unrevokedFamilyTokenCount).isZero();
+
+        assertThatThrownBy(() ->
+                refreshTokenService.rotate(
+                        rotationResult.refreshToken()
+                )
+        ).isInstanceOf(InvalidRefreshTokenException.class);
         }
 }

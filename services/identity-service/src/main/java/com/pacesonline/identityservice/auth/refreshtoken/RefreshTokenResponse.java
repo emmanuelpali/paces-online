@@ -1,8 +1,9 @@
 package com.pacesonline.identityservice.auth.refreshtoken;
 
-public record RefreshTokenRotationResult(
+public record RefreshTokenResponse(
         String accessToken,
         String refreshToken,
+        String tokenType,
         long accessTokenExpiresIn,
         long refreshTokenExpiresIn
 ) {

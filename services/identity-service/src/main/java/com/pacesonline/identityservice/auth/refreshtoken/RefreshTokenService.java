@@ -6,6 +6,7 @@ import com.pacesonline.identityservice.user.User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -77,10 +78,14 @@ public class RefreshTokenService {
                 currentToken.getUser()
         );
 
+        long refreshTokenExpiresIn = Duration.between(now, currentToken.getExpiresAt())
+                .getSeconds();
+
         return new RefreshTokenRotationResult(
                 accessToken,
                 replacementToken.rawToken(),
-                replacementToken.expiresAt()
+                tokenProperties.accessTokenExpiration().getSeconds(),
+                refreshTokenExpiresIn
         );
     }
 

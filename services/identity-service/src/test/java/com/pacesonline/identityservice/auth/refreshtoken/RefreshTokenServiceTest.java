@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -148,12 +149,17 @@ class RefreshTokenServiceTest {
         assertTrue(currentToken.isConsumed());
         assertEquals(accessToken, result.accessToken());
         assertEquals(replacementRawToken, result.refreshToken());
-        assertEquals(familyExpiration, result.refreshTokenExpiresAt());
+        assertThat(result.accessTokenExpiresIn())
+        .isEqualTo(ACCESS_TOKEN_EXPIRATION.toSeconds());
 
         assertSame(user, replacementToken.getUser());
         assertEquals(familyId, replacementToken.getFamilyId());
         assertEquals(replacementHash, replacementToken.getTokenHash());
-        assertEquals(familyExpiration, replacementToken.getExpiresAt());
+        assertThat(result.accessTokenExpiresIn())
+        .isEqualTo(ACCESS_TOKEN_EXPIRATION.toSeconds());
+        assertThat(result.refreshTokenExpiresIn())
+        .isEqualTo(Duration.between(currentToken.getConsumedAt(),
+                        familyExpiration).toSeconds());
         assertNotEquals(currentToken.getId(), replacementToken.getId());
 
         verify(refreshTokenRepository, never())
