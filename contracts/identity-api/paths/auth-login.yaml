@@ -1,0 +1,26 @@
+post:
+  tags:
+    - Authentication
+  summary: Authenticate a user
+  operationId: login
+
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../components/schemas/authentication.yaml#/LoginRequest'
+
+  responses:
+    '200':
+      description: Authentication successful
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/authentication.yaml#/LoginResponse'
+
+    '400':
+      description: Login request is invalid
+
+    '401':
+      description: Invalid email or password

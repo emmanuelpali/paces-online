@@ -26,7 +26,7 @@ class OpenApiContractTest {
     void contractIsValidAndAllReferencesResolve() {
         assertTrue(
                 Files.exists(CONTRACT_PATH),
-                () -> "OpenAPI contract does not exist: "
+                () -> "identity-api.yaml contract does not exist: "
                         + CONTRACT_PATH
         );
 

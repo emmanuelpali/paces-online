@@ -1,0 +1,50 @@
+openapi: 3.0.3
+
+info:
+  title: PacesOnline Identity API
+  version: 0.1.0
+  description: API contract for the PacesOnline Identity Service.
+
+tags:
+  - name: Authentication
+    description: Identity and authentication operations.
+
+paths:
+  /api/v1/auth/register:
+    $ref: './paths/auth-register.yaml'
+
+  /api/v1/auth/login:
+    $ref: './paths/auth-login.yaml'
+
+  /api/v1/auth/refresh:
+    $ref: './paths/auth-refresh.yaml'
+
+  /api/v1/users/user:
+    $ref: './paths/users-current.yaml'
+
+components:
+  schemas:
+    RegisterUserRequest:
+      $ref: './components/schemas/authentication.yaml#/RegisterUserRequest'
+
+    RegisteredUserResponse:
+      $ref: './components/schemas/users.yaml#/RegisteredUserResponse'
+
+    LoginRequest:
+      $ref: './components/schemas/authentication.yaml#/LoginRequest'
+
+    LoginResponse:
+      $ref: './components/schemas/authentication.yaml#/LoginResponse'
+
+    RefreshTokenRequest:
+      $ref: './components/schemas/authentication.yaml#/RefreshTokenRequest'
+
+    RefreshTokenResponse:
+      $ref: './components/schemas/authentication.yaml#/RefreshTokenResponse'
+
+    UserProfileResponse:
+      $ref: './components/schemas/users.yaml#/UserProfileResponse'
+
+  securitySchemes:
+    bearerAuth:
+      $ref: './components/security-schemes.yaml#/bearerAuth'
