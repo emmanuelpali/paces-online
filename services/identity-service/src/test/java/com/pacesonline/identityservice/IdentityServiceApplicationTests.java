@@ -34,6 +34,16 @@ import com.pacesonline.identityservice.auth.refreshtoken.InvalidRefreshTokenExce
 import com.pacesonline.identityservice.auth.refreshtoken.RefreshTokenRotationResult;
 import com.pacesonline.identityservice.auth.refreshtoken.RefreshTokenService;
 
+import com.pacesonline.identityservice.auth.login.InvalidCredentialsException;
+
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -547,5 +557,159 @@ class IdentityServiceApplicationTests {
                         rotationResult.refreshToken()
                 )
         ).isInstanceOf(InvalidRefreshTokenException.class);
+        }
+
+        @Test
+        void concurrentRefreshRequestsAllowExactlyOneRotation()
+                throws Exception {
+
+        String email = "refresh-concurrent@example.com";
+        String password = "strong-password";
+
+        registrationService.register(email, password);
+
+        LoginResult loginResult = loginService.login(
+                email,
+                password
+        );
+
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+
+        ExecutorService executor =
+                Executors.newFixedThreadPool(2);
+
+        Callable<Boolean> rotate = () -> {
+                ready.countDown();
+                start.await();
+
+                try {
+                refreshTokenService.rotate(
+                        loginResult.refreshToken()
+                );
+
+                return true;
+                } catch (InvalidRefreshTokenException exception) {
+                return false;
+                }
+        };
+
+        try {
+                Future<Boolean> firstAttempt =
+                        executor.submit(rotate);
+
+                Future<Boolean> secondAttempt =
+                        executor.submit(rotate);
+
+                assertThat(
+                        ready.await(5, TimeUnit.SECONDS)
+                ).isTrue();
+
+                start.countDown();
+
+                List<Boolean> results = List.of(
+                        firstAttempt.get(10, TimeUnit.SECONDS),
+                        secondAttempt.get(10, TimeUnit.SECONDS)
+                );
+
+                assertThat(results)
+                        .containsExactlyInAnyOrder(true, false);
+        } finally {
+                // Prevent waiting threads from remaining blocked if an
+                // assertion or submission fails before the start signal.
+                start.countDown();
+                executor.shutdownNow();
+        }
+
+        String originalHash = refreshTokenGenerator.hash(
+                loginResult.refreshToken()
+        );
+
+        UUID familyId = jdbcTemplate.queryForObject(
+                """
+                SELECT family_id
+                FROM refresh_tokens
+                WHERE token_hash = ?
+                """,
+                UUID.class,
+                originalHash
+        );
+
+        Long activeTokenCount = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM refresh_tokens
+                WHERE family_id = ?
+                AND consumed_at IS NULL
+                AND revoked_at IS NULL
+                """,
+                Long.class,
+                familyId
+        );
+
+        assertThat(activeTokenCount).isZero();
+        }
+
+        @Test
+        void expiredPersistedRefreshTokenCannotBeRotated() {
+        String email = "refresh-expired@example.com";
+        String password = "strong-password";
+
+        registrationService.register(email, password);
+
+        LoginResult loginResult = loginService.login(
+                email,
+                password
+        );
+
+        String tokenHash = refreshTokenGenerator.hash(
+                loginResult.refreshToken()
+        );
+
+        jdbcTemplate.update(
+                """
+                UPDATE refresh_tokens
+                SET created_at = CURRENT_TIMESTAMP - INTERVAL '2 hours',
+                        expires_at = CURRENT_TIMESTAMP - INTERVAL '1 hour'
+                WHERE token_hash = ?
+                """,
+                tokenHash
+        );
+
+        assertThatThrownBy(() ->
+                refreshTokenService.rotate(
+                        loginResult.refreshToken()
+                )
+        ).isInstanceOf(InvalidRefreshTokenException.class);
+        }
+
+        @Test
+        void unsuccessfulLoginDoesNotPersistRefreshToken() {
+        String email = "refresh-failed-login@example.com";
+        String password = "strong-password";
+
+        User user = registrationService.register(
+                email,
+                password
+        );
+
+        assertThatThrownBy(() ->
+                loginService.login(
+                        email,
+                        "incorrect-password"
+                )
+        ).isInstanceOf(InvalidCredentialsException.class);
+
+        Long refreshTokenCount = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM refresh_tokens
+                WHERE user_id = ?
+                """,
+                Long.class,
+                user.getId()
+        );
+
+        assertThat(refreshTokenCount).isZero();
         }
 }
