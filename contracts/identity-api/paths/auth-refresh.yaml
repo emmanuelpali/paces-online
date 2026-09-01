@@ -1,0 +1,29 @@
+post:
+  tags:
+    - Authentication
+  summary: Refresh an authenticated session
+  description: >
+    Exchanges an active refresh token for a new JWT access token
+    and a rotated refresh token.
+  operationId: refreshToken
+
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../components/schemas/authentication.yaml#/RefreshTokenRequest'
+
+  responses:
+    '200':
+      description: Refresh token rotated successfully
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/authentication.yaml#/RefreshTokenResponse'
+
+    '400':
+      description: Refresh-token request is invalid
+
+    '401':
+      description: Refresh token is invalid

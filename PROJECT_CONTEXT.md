@@ -521,6 +521,28 @@ Documentation must remain concise.
 
 The final root README should contain:
 
+
+## Client-Facing Error Handling
+
+The Spring Boot BFF is the external API boundary for the React frontend and owns the standardized client-facing error contract.
+
+The BFF will:
+
+- use `@RestControllerAdvice` for centralized exception handling
+- return a consistent error-response structure across all BFF endpoints
+- translate validation failures, authentication failures, authorization failures, downstream-service errors, and unexpected failures into that structure
+- document standard error responses in the BFF OpenAPI contract
+- avoid exposing backend exception messages, stack traces, database details, tokens, or other sensitive information
+- preserve useful HTTP status codes while presenting a stable response format to React
+
+Backend services such as Identity Service and Run Service may use simpler local exception mappings where appropriate. Their internal error representations do not become the frontend contract.
+
+Generated BFF controller interfaces will reference the error schemas defined in the BFF OpenAPI contract. The `@RestControllerAdvice` implementation remains handwritten.
+
+---
+
+# Testing Strategy
+
 - Project purpose
 - Architecture summary
 - Technology stack
@@ -529,6 +551,7 @@ The final root README should contain:
 - Kubernetes deployment instructions
 - Links to OpenAPI contracts
 - Portfolio screenshots or demo material
+
 
 ### Service README
 

@@ -1,0 +1,36 @@
+RegisteredUserResponse:
+  type: object
+  required:
+    - id
+    - email
+    - createdAt
+  properties:
+    id:
+      type: string
+      format: uuid
+      example: 550e8400-e29b-41d4-a716-446655440000
+    email:
+      type: string
+      format: email
+      example: runner@example.com
+    createdAt:
+      type: string
+      format: date-time
+      example: '2026-08-13T20:00:00Z'
+
+UserProfileResponse:
+  type: object
+  required:
+    - id
+    - email
+    - createdAt
+  properties:
+    id:
+      type: string
+      format: uuid
+    email:
+      type: string
+      format: email
+    createdAt:
+      type: string
+      format: date-time

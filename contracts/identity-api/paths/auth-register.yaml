@@ -1,0 +1,26 @@
+post:
+  tags:
+    - Authentication
+  summary: Register a new user
+  operationId: registerUser
+
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../components/schemas/authentication.yaml#/RegisterUserRequest'
+
+  responses:
+    '201':
+      description: User registered successfully
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/users.yaml#/RegisteredUserResponse'
+
+    '400':
+      description: Registration request is invalid
+
+    '409':
+      description: Email is already registered

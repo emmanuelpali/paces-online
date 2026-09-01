@@ -1,6 +1,6 @@
-package com.pacesonline.identityservice.auth.login;
+package com.pacesonline.identityservice.auth.refreshtoken;
 
-public record LoginResult(
+public record RefreshTokenRotationResult(
         String accessToken,
         String refreshToken,
         long accessTokenExpiresIn,

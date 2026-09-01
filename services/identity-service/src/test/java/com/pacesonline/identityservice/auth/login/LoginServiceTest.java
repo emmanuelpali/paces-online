@@ -4,6 +4,10 @@ import com.pacesonline.identityservice.auth.token.AccessTokenService;
 import com.pacesonline.identityservice.config.TokenProperties;
 import com.pacesonline.identityservice.user.User;
 import com.pacesonline.identityservice.user.UserRepository;
+import com.pacesonline.identityservice.auth.refreshtoken.IssuedRefreshToken;
+import com.pacesonline.identityservice.auth.refreshtoken.RefreshTokenService;
+
+import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,6 +39,9 @@ class LoginServiceTest {
     @Mock
     private AccessTokenService accessTokenService;
 
+    @Mock
+    private RefreshTokenService refreshTokenService;
+
     private LoginService loginService;
 
     @BeforeEach
@@ -54,12 +61,13 @@ class LoginServiceTest {
                 userRepository,
                 passwordEncoder,
                 accessTokenService,
+                refreshTokenService,
                 tokenProperties
         );
     }
 
     @Test
-    void authenticatesValidCredentialsAndReturnsAccessToken() {
+    void authenticatesValidCredentialsAndReturnsTokenPair() {
         User user = new User(
                 UUID.randomUUID(),
                 "runner@example.com",
@@ -77,6 +85,12 @@ class LoginServiceTest {
         when(accessTokenService.generateAccessToken(user))
                 .thenReturn("signed-access-token");
 
+        when(refreshTokenService.issueNewFamily(user))
+                .thenReturn(new IssuedRefreshToken(
+                        "raw-refresh-token",
+                        Instant.now().plus(Duration.ofDays(7))
+                ));
+
         LoginResult result = loginService.login(
                 " Runner@Example.com ",
                 "strong-password"
@@ -85,21 +99,29 @@ class LoginServiceTest {
         assertThat(result.accessToken())
                 .isEqualTo("signed-access-token");
 
-        assertThat(result.expiresIn())
+        assertThat(result.refreshToken())
+                .isEqualTo("raw-refresh-token");
+
+        assertThat(result.accessTokenExpiresIn())
                 .isEqualTo(900);
+
+        assertThat(result.refreshTokenExpiresIn())
+                .isEqualTo(604800);
 
         verify(userRepository)
                 .findByEmail("runner@example.com");
 
-        verify(passwordEncoder)
-                .matches(
-                        "strong-password",
-                        "stored-password-hash"
-                );
+        verify(passwordEncoder).matches(
+                "strong-password",
+                "stored-password-hash"
+        );
 
         verify(accessTokenService)
                 .generateAccessToken(user);
-    }
+
+        verify(refreshTokenService)
+                .issueNewFamily(user);
+        }
 
     @Test
     void rejectsUnknownEmailWithoutGeneratingAccessToken() {
@@ -119,6 +141,8 @@ class LoginServiceTest {
         "strong-password",
         "dummy-password-hash"
         );
+        verify(refreshTokenService, never())
+                .issueNewFamily(any());
 
         verify(accessTokenService, never())
                 .generateAccessToken(any());
@@ -149,6 +173,8 @@ class LoginServiceTest {
                 .isInstanceOf(InvalidCredentialsException.class)
                 .hasMessage("Invalid email or password");
 
+        verify(refreshTokenService, never())
+                .issueNewFamily(any());
         verify(accessTokenService, never())
                 .generateAccessToken(any());
     }

@@ -1,4 +1,4 @@
-package com.pacesonline.identityservice.auth.login;
+package com.pacesonline.identityservice.auth.refreshtoken;
 
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -10,27 +10,27 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/auth")
-public class LoginController {
+public class RefreshTokenController {
 
     private static final String TOKEN_TYPE = "Bearer";
 
-    private final LoginService loginService;
+    private final RefreshTokenService refreshTokenService;
 
-    public LoginController(LoginService loginService) {
-        this.loginService = loginService;
+    public RefreshTokenController(
+            RefreshTokenService refreshTokenService
+    ) {
+        this.refreshTokenService = refreshTokenService;
     }
 
-    @PostMapping("/login")
+    @PostMapping("/refresh")
     @ResponseStatus(HttpStatus.OK)
-    public LoginResponse login(
-            @Valid @RequestBody LoginRequest request
+    public RefreshTokenResponse refresh(
+            @Valid @RequestBody RefreshTokenRequest request
     ) {
-        LoginResult result = loginService.login(
-                request.email(),
-                request.password()
-        );
+        RefreshTokenRotationResult result =
+                refreshTokenService.rotate(request.refreshToken());
 
-        return new LoginResponse(
+        return new RefreshTokenResponse(
                 result.accessToken(),
                 result.refreshToken(),
                 TOKEN_TYPE,

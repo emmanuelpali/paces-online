@@ -1,0 +1,16 @@
+get:
+  tags:
+    - Users
+  summary: Get authenticated user profile
+  operationId: getAuthenticatedUser
+  security:
+    - bearerAuth: []
+  responses:
+    '200':
+      description: Authenticated user profile
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/users.yaml#/UserProfileResponse'
+    '401':
+      description: Authentication required or access token is invalid

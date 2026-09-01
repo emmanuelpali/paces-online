@@ -1,0 +1,100 @@
+RegisterUserRequest:
+  type: object
+  required:
+    - email
+    - password
+  properties:
+    email:
+      type: string
+      format: email
+      example: runner@example.com
+    password:
+      type: string
+      minLength: 8
+      example: strong-password
+
+LoginRequest:
+  type: object
+  required:
+    - email
+    - password
+  properties:
+    email:
+      type: string
+      format: email
+      example: runner@example.com
+    password:
+      type: string
+      example: strong-password
+
+LoginResponse:
+  type: object
+  required:
+    - accessToken
+    - refreshToken
+    - tokenType
+    - accessTokenExpiresIn
+    - refreshTokenExpiresIn
+  properties:
+    accessToken:
+      type: string
+      description: Signed JWT access token
+    refreshToken:
+      type: string
+      description: Opaque refresh token
+    tokenType:
+      type: string
+      example: Bearer
+    accessTokenExpiresIn:
+      type: integer
+      format: int64
+      minimum: 1
+      description: Access-token lifetime in seconds
+      example: 900
+    refreshTokenExpiresIn:
+      type: integer
+      format: int64
+      minimum: 1
+      description: Refresh-token family lifetime in seconds
+      example: 604800
+
+RefreshTokenRequest:
+  type: object
+  required:
+    - refreshToken
+  properties:
+    refreshToken:
+      type: string
+      minLength: 1
+      description: Opaque refresh token issued during login or rotation
+
+RefreshTokenResponse:
+  type: object
+  required:
+    - accessToken
+    - refreshToken
+    - tokenType
+    - accessTokenExpiresIn
+    - refreshTokenExpiresIn
+  properties:
+    accessToken:
+      type: string
+      description: Newly issued JWT access token
+    refreshToken:
+      type: string
+      description: Newly rotated opaque refresh token
+    tokenType:
+      type: string
+      example: Bearer
+    accessTokenExpiresIn:
+      type: integer
+      format: int64
+      minimum: 1
+      description: Access-token lifetime in seconds
+      example: 900
+    refreshTokenExpiresIn:
+      type: integer
+      format: int64
+      minimum: 1
+      description: Remaining refresh-token family lifetime in seconds
+      example: 604500
