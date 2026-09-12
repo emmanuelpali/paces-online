@@ -12,9 +12,9 @@ Its primary goals are:
 
 The project must prioritize learning and completion over architectural complexity.
 
-Portfolio-ready Version 1 target:
+September 30, 2026 is an initial planning target, not a hard deadline.
 
-**September 30, 2026**
+Learning quality, code review and a complete core workflow take priority over meeting that date. The Version 1 scope must remain fixed rather than expanding when the date moves.
 
 A smaller application that is secure, tested, documented and deployable is more valuable than a larger unfinished system.
 
@@ -106,6 +106,16 @@ Each Spring Boot application remains independently buildable, testable, containe
 
 The BFF is retained as a small integration layer. It must not become another domain service.
 
+Spring Boot applications use conventional layers when those layers have real responsibilities:
+
+```text
+Controller -> Service -> Repository -> PostgreSQL
+```
+
+Controllers own the HTTP boundary, services own business rules and transaction boundaries, and repositories own persistence queries. API DTOs remain separate from JPA entities. Empty layers and service interfaces without a concrete need must not be created merely to satisfy a template.
+
+The BFF follows the same dependency discipline but has no repository because it owns no database.
+
 ---
 
 ## Application Responsibilities
@@ -124,6 +134,8 @@ The frontend is responsible for:
 
 The frontend communicates only with the BFF.
 
+React keeps the short-lived access token in memory. The refresh token must not be exposed to frontend JavaScript or stored in browser storage.
+
 ---
 
 ### Minimal Spring Boot BFF
@@ -133,6 +145,11 @@ The BFF is responsible for:
 - Providing one API boundary for React
 - Calling Identity Service and Run Service
 - Using OpenAPI-generated Java clients for backend-service calls
+- Implementing generated Spring API interfaces from the handwritten BFF OpenAPI contract
+- Keeping controller implementations handwritten
+- Managing the Identity Service refresh token through a configurable HttpOnly, SameSite cookie
+- Returning the short-lived access token to React for in-memory use
+- Rotating and clearing the refresh-token cookie during refresh and logout
 - Forwarding access tokens to protected downstream endpoints
 - Translating a small set of downstream failures
 - Centralizing frontend-facing CORS configuration
@@ -153,7 +170,7 @@ The BFF must not:
 - Aggregate responses unless a real frontend requirement appears
 - Develop its own complex security model
 
-BFF controllers remain handwritten.
+BFF controller implementations remain handwritten and implement generated Spring API interfaces. Generated interfaces and DTOs must not contain business or integration logic.
 
 ---
 
@@ -296,6 +313,7 @@ Version 1 should provide practical experience with:
 - Spring Boot application configuration
 - Profiles and environment variables
 - Type-safe application properties
+- Conventional controller, service and repository layering
 - REST controllers
 - Request validation
 - Consistent exception handling
@@ -308,7 +326,7 @@ Version 1 should provide practical experience with:
 - JWT authentication
 - Ownership-based authorization
 - Downstream HTTP clients
-- OpenAPI contracts and generated clients
+- OpenAPI contracts, generated clients and generated server interfaces
 - Actuator health endpoints
 - Unit, MVC and integration testing
 - Docker containerization
@@ -342,11 +360,11 @@ Backend service controllers remain handwritten.
 
 The BFF maintains a small handwritten public contract for React.
 
-BFF controllers also remain handwritten.
+That contract generates Spring server interfaces and API DTOs. Handwritten BFF controllers implement the generated interfaces.
 
-Version 1 will not generate BFF server/controller interfaces.
+The Identity and Run contracts generate the Java clients used by the BFF.
 
-Generated Java clients must not be edited manually.
+Generated sources are build output, are not committed, and must not be edited manually. Generator versions and important options are pinned so builds remain reproducible.
 
 Generating a TypeScript client for React is optional and should be added only if it saves implementation effort.
 
@@ -466,15 +484,16 @@ Do not duplicate all Identity and Run Service tests in the BFF.
 
 For each significant feature:
 
-1. Define a small behavior matrix together.
-2. Select the correct test level for each behavior.
-3. Write the first test with detailed guidance.
-4. Have the user write subsequent tests with less scaffolding.
-5. Review test names, setup, assertions and maintainability.
-6. Explain why each test provides useful confidence.
-7. Remove tests that merely repeat framework guarantees.
+1. Explain the relevant Spring or testing concept before assessing it.
+2. Define a small behavior matrix together.
+3. Select the correct test level for each behavior.
+4. AI may generate implementation and test code, but generated code is treated as a review candidate rather than automatically correct.
+5. Review dependency direction, annotations, test names, setup, assertions and maintainability.
+6. Run the tests, predict important outcomes and diagnose failures together.
+7. Finish with a short practical review exercise based directly on the completed code.
+8. Remove tests that merely repeat framework guarantees.
 
-The goal is for the user to become comfortable deciding:
+The goal is to build framework knowledge and code-review judgement. The user should become comfortable deciding:
 
 - What should be tested?
 - At which level?
@@ -498,7 +517,9 @@ A knowledge check may include:
 - Writing or correcting a focused test
 - Connecting the work to a Kubernetes concept
 
-Knowledge checks should usually contain five to eight focused questions.
+Knowledge checks should usually contain three to five focused questions.
+
+They happen after teaching and code review. Difficulty increases only after the fundamentals are comfortable.
 
 They test understanding, not memorization or obscure trivia.
 
@@ -562,6 +583,8 @@ Each deployable application receives one Docker image:
 - BFF
 - React frontend
 
+Containerizing the Run Service, BFF and React frontend separately reinforces multi-stage builds, build contexts, runtime images, configuration and non-root execution through repetition. Commands must be explained before they are used so the Docker work remains a learning exercise.
+
 Docker Compose supports local execution of the complete system.
 
 Only required infrastructure should be included.
@@ -573,6 +596,8 @@ Do not add containers for deferred technologies.
 ## Kubernetes and CKAD Strategy
 
 Kubernetes is a core Version 1 goal, not a final optional addition.
+
+The Version 1 deployment target is a local Kubernetes cluster using images published to GitHub Container Registry. A public cloud deployment, DNS and production TLS are outside the Version 1 scope.
 
 The project should provide experience with:
 
@@ -628,6 +653,7 @@ Version 1 requires one understandable CI pipeline that:
 - Runs automated tests
 - Fails on build or test errors
 - Builds container images when appropriate
+- Publishes releasable images to GitHub Container Registry with traceable tags
 
 Do not introduce multiple CI/CD systems.
 
@@ -658,6 +684,9 @@ Do not introduce multiple CI/CD systems.
 
 ### 3. Build Minimal BFF
 
+- Maintain a small handwritten BFF OpenAPI contract
+- Generate BFF Spring server interfaces and API DTOs
+- Implement the generated interfaces with handwritten controllers
 - Generate backend Java clients
 - Configure backend service locations
 - Implement thin authentication endpoints
