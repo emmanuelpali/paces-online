@@ -2,19 +2,20 @@
 
 ## Purpose
 
-PacesOnline is a running-journal application and portfolio project.
+PacesOnline is a production-minded running-journal application and full-stack reference implementation.
 
 Its primary goals are:
 
-1. Develop practical intermediate Spring Boot skills.
-2. Build practical Kubernetes experience supporting CKAD preparation.
-3. Deliver a complete, credible full-stack portfolio application.
+1. Deliver a complete and secure user workflow for recording and managing runs.
+2. Maintain clear service boundaries and contract-first integrations.
+3. Provide repeatable builds, automated verification and containerized deployment.
+4. Deploy and operate the system on a local Kubernetes cluster.
 
-The project must prioritize learning and completion over architectural complexity.
+The project prioritizes correctness, maintainability and completion over architectural complexity.
 
-Portfolio-ready Version 1 target:
+September 30, 2026 is an initial planning target, not a hard deadline.
 
-**September 30, 2026**
+Correctness, review quality and a complete core workflow take priority over meeting that date. The Version 1 scope remains fixed rather than expanding when the date moves.
 
 A smaller application that is secure, tested, documented and deployable is more valuable than a larger unfinished system.
 
@@ -55,7 +56,7 @@ When sources disagree:
 2. This file defines stable project direction.
 3. The active GitHub issue defines current scope.
 4. The current branch defines actual implementation state.
-5. Old handoffs and chat history are advisory only.
+5. Superseded documents and implementation notes are advisory only.
 
 ---
 
@@ -106,6 +107,16 @@ Each Spring Boot application remains independently buildable, testable, containe
 
 The BFF is retained as a small integration layer. It must not become another domain service.
 
+Spring Boot applications use conventional layers when those layers have real responsibilities:
+
+```text
+Controller -> Service -> Repository -> PostgreSQL
+```
+
+Controllers own the HTTP boundary, services own business rules and transaction boundaries, and repositories own persistence queries. API DTOs remain separate from JPA entities. Empty layers and service interfaces without a concrete need must not be created merely to satisfy a template.
+
+The BFF follows the same dependency discipline but has no repository because it owns no database.
+
 ---
 
 ## Application Responsibilities
@@ -124,6 +135,8 @@ The frontend is responsible for:
 
 The frontend communicates only with the BFF.
 
+React keeps the short-lived access token in memory. The refresh token must not be exposed to frontend JavaScript or stored in browser storage.
+
 ---
 
 ### Minimal Spring Boot BFF
@@ -133,6 +146,11 @@ The BFF is responsible for:
 - Providing one API boundary for React
 - Calling Identity Service and Run Service
 - Using OpenAPI-generated Java clients for backend-service calls
+- Implementing generated Spring API interfaces from the handwritten BFF OpenAPI contract
+- Keeping controller implementations handwritten
+- Managing the Identity Service refresh token through a configurable HttpOnly, SameSite cookie
+- Returning the short-lived access token to React for in-memory use
+- Rotating and clearing the refresh-token cookie during refresh and logout
 - Forwarding access tokens to protected downstream endpoints
 - Translating a small set of downstream failures
 - Centralizing frontend-facing CORS configuration
@@ -153,7 +171,7 @@ The BFF must not:
 - Aggregate responses unless a real frontend requirement appears
 - Develop its own complex security model
 
-BFF controllers remain handwritten.
+BFF controller implementations remain handwritten and implement generated Spring API interfaces. Generated interfaces and DTOs must not contain business or integration logic.
 
 ---
 
@@ -289,13 +307,14 @@ The client must not provide the authoritative calculated pace.
 
 ---
 
-## Spring Boot Learning Goals
+## Engineering Capabilities
 
-Version 1 should provide practical experience with:
+Version 1 demonstrates:
 
 - Spring Boot application configuration
 - Profiles and environment variables
 - Type-safe application properties
+- Conventional controller, service and repository layering
 - REST controllers
 - Request validation
 - Consistent exception handling
@@ -308,13 +327,13 @@ Version 1 should provide practical experience with:
 - JWT authentication
 - Ownership-based authorization
 - Downstream HTTP clients
-- OpenAPI contracts and generated clients
+- OpenAPI contracts, generated clients and generated server interfaces
 - Actuator health endpoints
 - Unit, MVC and integration testing
 - Docker containerization
 - Kubernetes deployment
 
-Advanced patterns must not be added merely to demonstrate familiarity with them.
+Advanced patterns must not be added without a concrete product or operational requirement.
 
 ---
 
@@ -342,11 +361,11 @@ Backend service controllers remain handwritten.
 
 The BFF maintains a small handwritten public contract for React.
 
-BFF controllers also remain handwritten.
+That contract generates Spring server interfaces and API DTOs. Handwritten BFF controllers implement the generated interfaces.
 
-Version 1 will not generate BFF server/controller interfaces.
+The Identity and Run contracts generate the Java clients used by the BFF.
 
-Generated Java clients must not be edited manually.
+Generated sources are build output, are not committed, and must not be edited manually. Generator versions and important options are pinned so builds remain reproducible.
 
 Generating a TypeScript client for React is optional and should be added only if it saves implementation effort.
 
@@ -404,9 +423,9 @@ Do not wrap standard Spring Boot configuration in custom abstractions without a 
 
 ---
 
-## Testing and Learning Strategy
+## Testing Strategy
 
-Testing is a primary learning goal, not a final cleanup activity.
+Testing is part of feature delivery, not a final cleanup activity.
 
 Before implementing a feature:
 
@@ -462,54 +481,18 @@ BFF tests should focus on:
 
 Do not duplicate all Identity and Run Service tests in the BFF.
 
-### Testing Learning Process
+### Test Design Process
 
 For each significant feature:
 
-1. Define a small behavior matrix together.
-2. Select the correct test level for each behavior.
-3. Write the first test with detailed guidance.
-4. Have the user write subsequent tests with less scaffolding.
-5. Review test names, setup, assertions and maintainability.
-6. Explain why each test provides useful confidence.
-7. Remove tests that merely repeat framework guarantees.
+1. Define the expected behavior and important failure cases.
+2. Select the smallest appropriate test level for each behavior.
+3. Implement tests alongside production code.
+4. Review test names, setup, assertions, isolation and maintainability.
+5. Run the relevant test suite before merge.
+6. Remove tests that merely repeat framework guarantees.
 
-The goal is for the user to become comfortable deciding:
-
-- What should be tested?
-- At which level?
-- What should be mocked?
-- When is a real database necessary?
-- What does the test actually prove?
-
----
-
-## Knowledge Checks
-
-Every major issue or milestone ends with a short knowledge check.
-
-A knowledge check may include:
-
-- Explaining an implemented concept in the user’s own words
-- Reading a short code sample
-- Predicting behavior
-- Diagnosing a failure
-- Explaining a tradeoff
-- Writing or correcting a focused test
-- Connecting the work to a Kubernetes concept
-
-Knowledge checks should usually contain five to eight focused questions.
-
-They test understanding, not memorization or obscure trivia.
-
-If a knowledge gap appears:
-
-1. Explain the concept.
-2. Use a small targeted exercise.
-3. Retest the concept.
-4. Continue the project without adding unrelated scope.
-
-Testing questions must be included regularly because automated testing is an explicit learning priority.
+Tests must make ownership, security, persistence and API behavior visible to reviewers.
 
 ---
 
@@ -562,6 +545,8 @@ Each deployable application receives one Docker image:
 - BFF
 - React frontend
 
+All application images use consistent container standards: reproducible builds, minimal runtime images, non-root execution and externally supplied configuration. Each Dockerfile remains tailored to its workload.
+
 Docker Compose supports local execution of the complete system.
 
 Only required infrastructure should be included.
@@ -570,11 +555,13 @@ Do not add containers for deferred technologies.
 
 ---
 
-## Kubernetes and CKAD Strategy
+## Kubernetes Strategy
 
-Kubernetes is a core Version 1 goal, not a final optional addition.
+Kubernetes is a core Version 1 deployment target.
 
-The project should provide experience with:
+The Version 1 deployment target is a local Kubernetes cluster using images published to GitHub Container Registry. A public cloud deployment, DNS and production TLS are outside the Version 1 scope.
+
+Kubernetes manifests include:
 
 - Namespaces
 - Deployments
@@ -602,7 +589,6 @@ Do not introduce:
 - Complex deployment platforms
 - Multiple competing deployment frameworks
 
-CKAD exercises should also be practised independently rather than forcing every exam topic into the application.
 
 ---
 
@@ -628,6 +614,7 @@ Version 1 requires one understandable CI pipeline that:
 - Runs automated tests
 - Fails on build or test errors
 - Builds container images when appropriate
+- Publishes releasable images to GitHub Container Registry with traceable tags
 
 Do not introduce multiple CI/CD systems.
 
@@ -658,6 +645,9 @@ Do not introduce multiple CI/CD systems.
 
 ### 3. Build Minimal BFF
 
+- Maintain a small handwritten BFF OpenAPI contract
+- Generate BFF Spring server interfaces and API DTOs
+- Implement the generated interfaces with handwritten controllers
 - Generate backend Java clients
 - Configure backend service locations
 - Implement thin authentication endpoints
@@ -685,7 +675,7 @@ Do not introduce multiple CI/CD systems.
 - End-to-end core workflow
 - Concise operating documentation
 
-### 6. Kubernetes and CKAD
+### 6. Kubernetes Deployment
 
 - Deployments and Services
 - ConfigMaps and Secrets
@@ -697,13 +687,13 @@ Do not introduce multiple CI/CD systems.
 - Optional NetworkPolicy
 - Deployment documentation
 
-### 7. Portfolio Release
+### 7. Release Readiness
 
 - CI pipeline
 - Architecture summary
 - Screenshots or demonstration
 - Final root README
-- Final knowledge review
+- End-to-end acceptance verification
 
 ---
 
@@ -752,10 +742,10 @@ Before adding a technology, abstraction, layer or framework, ask:
 
 1. What concrete Version 1 problem does it solve?
 2. Does Spring Boot, React, PostgreSQL, Docker or Kubernetes already solve it?
-3. Does it teach an important intermediate Spring Boot or CKAD skill?
-4. Is the learning value worth the delivery cost?
-5. Can the same lesson be learned with a smaller implementation?
+3. Does it improve correctness, security, maintainability or operability?
+4. Is the engineering benefit worth the delivery and operational cost?
+5. Can the requirement be met with a smaller implementation?
 
 If the answers do not justify the complexity, do not add it.
 
-Intermediate engineering is demonstrated through correct decisions and completed behavior—not maximum architecture complexity.
+Engineering quality is demonstrated through sound decisions and completed behavior, not maximum architectural complexity.
