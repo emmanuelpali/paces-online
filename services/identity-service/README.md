@@ -16,8 +16,8 @@ The Identity Service owns user identity and authentication for PacesOnline.
 - Refresh-token rotation
 - Refresh-token reuse detection and family revocation
 - Handwritten OpenAPI contract
+- Minimal logout
 
-Logout will be implemented separately. Role-management and administrator workflows are outside the Version 1 scope.
 
 ## Requirements
 
@@ -30,6 +30,18 @@ Docker must be running when executing integration tests because the test suite u
 ## Build and Test
 
 Run commands from `services/identity-service`.
+
+## Container Image
+
+Build the Identity Service image from this directory:
+
+```bash
+docker build -t pacesonline/identity-service:local .
+```
+
+The Dockerfile uses a Java 25 JDK build stage and a smaller Java 25 JRE runtime stage. The final image runs as non-root user `10001:10001` and exposes port `8080`.
+
+Spring profiles, database settings and JWT configuration are supplied through the runtime environment. Full local multi-container startup will be handled later through Docker Compose.
 
 ### Windows
 
@@ -179,6 +191,7 @@ The Identity Service currently provides:
 POST /api/v1/auth/register
 POST /api/v1/auth/login
 POST /api/v1/auth/refresh
+POST /api/v1/auth/logout
 GET  /api/v1/users/user
 ```
 
@@ -360,6 +373,7 @@ Unit tests cover isolated behavior such as:
 - Expiration handling
 - Revocation handling
 - Reuse detection
+- Logout family revocation
 
 ### MVC tests
 
@@ -370,6 +384,7 @@ MVC tests cover:
 - Status codes
 - Public and protected endpoint behavior
 - Generic unauthorized responses
+- Logout request validation and public access
 
 ### PostgreSQL integration tests
 
@@ -390,6 +405,7 @@ They cover:
 - Expired-token rejection
 - Unsuccessful-login persistence behavior
 - Concurrent refresh-token rotation
+- Logout and idempotent family revocation
 
 ## Security Notes
 
