@@ -19,7 +19,10 @@ CREATE TABLE runs
             'LONG',
             'TEMPO',
             'INTERVAL',
-            'RACE'
+            'HILL',
+            'FARTLEK',
+            'RACE',
+            'OTHER'
         )),
 
     CONSTRAINT chk_runs_distance_positive
