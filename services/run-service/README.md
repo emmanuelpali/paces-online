@@ -23,6 +23,19 @@ docker run --name pacesonline-run-postgres `
 
 The local configuration defaults can be overridden with `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD`.
 
+## Local JWT validation
+
+The Run Service validates RS256 access tokens using the configured Identity Service public key. It does not use the private signing key.
+
+The local profile supports:
+
+| Environment variable | Default |
+|---|---|
+| `JWT_ISSUER` | `https://identity.pacesonline.local` |
+| `JWT_PUBLIC_KEY_LOCATION` | `file:./config/keys/access-token-public.pem` |
+
+The public-key location must point to the key corresponding to the Identity Service signing key. Shared local key provisioning is deferred to the local-integration work.
+
 ## Run locally
 
 ```powershell
