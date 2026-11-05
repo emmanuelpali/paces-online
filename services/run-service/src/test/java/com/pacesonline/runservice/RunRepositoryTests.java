@@ -26,7 +26,10 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ActiveProfiles("test")
-@Import(TestcontainersConfiguration.class)
+@Import({
+        TestcontainersConfiguration.class,
+        SecurityTestConfiguration.class
+})
 @SpringBootTest
 @Transactional
 class RunRepositoryTests {
