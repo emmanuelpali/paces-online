@@ -1,6 +1,6 @@
 # Run Service
 
-The Run Service owns run persistence and ownership-aware run lookups for PacesOnline.
+The Run Service owns run persistence, authenticated run creation and ownership-aware run lookups for PacesOnline.
 
 ## Requirements
 
@@ -49,6 +49,12 @@ Check application health:
 ```powershell
 Invoke-RestMethod http://localhost:8081/actuator/health
 ```
+
+## API
+
+- `POST /api/v1/runs` creates a run owned by the authenticated user.
+
+The handwritten OpenAPI contract is located at `contracts/run-api/run-api.yaml`.
 
 ## Tests
 

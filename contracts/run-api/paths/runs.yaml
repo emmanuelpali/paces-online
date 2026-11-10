@@ -1,0 +1,34 @@
+post:
+  tags:
+    - Runs
+  summary: Create a run for the authenticated user
+  operationId: createRun
+  security:
+    - bearerAuth: []
+
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../components/schemas/runs.yaml#/CreateRunRequest'
+
+  responses:
+    '201':
+      description: Run created successfully
+      headers:
+        Location:
+          description: URI of the created run
+          schema:
+            type: string
+            format: uri
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/runs.yaml#/RunResponse'
+
+    '400':
+      description: Run request is invalid
+
+    '401':
+      description: Authentication required or access token is invalid

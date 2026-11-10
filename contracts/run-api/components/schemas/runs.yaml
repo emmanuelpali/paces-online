@@ -1,0 +1,101 @@
+CreateRunRequest:
+  type: object
+  required:
+    - startedAt
+    - runType
+    - distanceKilometres
+    - durationSeconds
+  properties:
+    startedAt:
+      type: string
+      format: date-time
+      example: '2026-11-10T12:00:00Z'
+    runType:
+      $ref: '#/RunType'
+    distanceKilometres:
+      type: number
+      format: double
+      minimum: 0
+      exclusiveMinimum: true
+      maximum: 9999.999
+      multipleOf: 0.001
+      example: 5.000
+    durationSeconds:
+      type: integer
+      format: int32
+      minimum: 1
+      example: 1500
+    perceivedEffort:
+      type: integer
+      format: int32
+      minimum: 1
+      maximum: 10
+      example: 4
+    notes:
+      type: string
+      maxLength: 1000
+      example: Comfortable morning run
+
+RunResponse:
+  type: object
+  required:
+    - id
+    - userId
+    - startedAt
+    - runType
+    - distanceKilometres
+    - durationSeconds
+    - averagePaceSecondsPerKilometre
+    - createdAt
+    - updatedAt
+  properties:
+    id:
+      type: string
+      format: uuid
+    userId:
+      type: string
+      format: uuid
+    startedAt:
+      type: string
+      format: date-time
+    runType:
+      $ref: '#/RunType'
+    distanceKilometres:
+      type: number
+      format: double
+    durationSeconds:
+      type: integer
+      format: int32
+    averagePaceSecondsPerKilometre:
+      type: integer
+      format: int32
+      minimum: 1
+      description: Backend-calculated whole seconds per kilometre
+      example: 300
+    perceivedEffort:
+      type: integer
+      format: int32
+      minimum: 1
+      maximum: 10
+    notes:
+      type: string
+      maxLength: 1000
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+
+RunType:
+  type: string
+  enum:
+    - EASY
+    - RECOVERY
+    - LONG
+    - TEMPO
+    - INTERVAL
+    - HILL
+    - FARTLEK
+    - RACE
+    - OTHER

@@ -1,0 +1,26 @@
+openapi: 3.0.3
+
+info:
+  title: PacesOnline Run API
+  version: 0.1.0
+  description: API contract for the PacesOnline Run Service.
+
+tags:
+  - name: Runs
+    description: Authenticated run-management operations.
+
+paths:
+  /api/v1/runs:
+    $ref: './paths/runs.yaml'
+
+components:
+  schemas:
+    CreateRunRequest:
+      $ref: './components/schemas/runs.yaml#/CreateRunRequest'
+
+    RunResponse:
+      $ref: './components/schemas/runs.yaml#/RunResponse'
+
+  securitySchemes:
+    bearerAuth:
+      $ref: './components/security-schemes.yaml#/bearerAuth'
