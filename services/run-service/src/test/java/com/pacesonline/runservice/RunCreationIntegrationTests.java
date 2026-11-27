@@ -41,8 +41,8 @@ class RunCreationIntegrationTests {
     private RunRepository runRepository;
 
     @Test
-    void persistsRunForAuthenticatedUser() throws Exception {
-        UUID ownerId = UUID.randomUUID();
+    void persistsJwtOwnerAndCalculatedPaceDespiteClientSuppliedValues() throws Exception {
+        UUID ownerId = UUID.fromString("11111111-1111-1111-1111-111111111111");
         String accessToken = createAccessToken(ownerId);
 
         String responseBody = mockMvc.perform(post("/api/v1/runs")
@@ -53,7 +53,9 @@ class RunCreationIntegrationTests {
                                   "startedAt": "2026-11-12T18:00:00Z",
                                   "runType": "EASY",
                                   "distanceKilometres": 2.000,
-                                  "durationSeconds": 1001
+                                  "durationSeconds": 1001,
+                                  "userId": "22222222-2222-2222-2222-222222222222",
+                                  "averagePaceSecondsPerKilometre": 999
                                 }
                                 """))
                 .andExpect(status().isCreated())
