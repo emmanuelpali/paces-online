@@ -5,6 +5,7 @@ import com.pacesonline.runservice.dto.CreateRunRequest;
 import com.pacesonline.runservice.dto.RunResponse;
 import com.pacesonline.runservice.entity.RunType;
 import com.pacesonline.runservice.exception.InvalidRunPaceException;
+import com.pacesonline.runservice.exception.RunNotFoundException;
 import com.pacesonline.runservice.service.RunService;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -135,5 +136,51 @@ class RunControllerTests {
                                 .andExpect(jsonPath("$.status").value(400));
 
                 verify(runService).createRun(eq(userId), any(CreateRunRequest.class));
+        }
+
+        @Test
+        void retrievesOwnedRun() throws Exception {
+                UUID ownerId = UUID.randomUUID();
+                UUID runId = UUID.randomUUID();
+                Instant timestamp = Instant.parse("2026-11-12T18:00:00Z");
+                when(runService.getRun(ownerId, runId)).thenReturn(new RunResponse(
+                                runId, timestamp, RunType.EASY, new BigDecimal("2.000"),
+                                1001, 501, null, null, timestamp, timestamp));
+
+                mockMvc.perform(get("/api/v1/runs/{runId}", runId)
+                                .with(jwt().jwt(token -> token.subject(ownerId.toString()))))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.id").value(runId.toString()))
+                                .andExpect(jsonPath("$.userId").doesNotExist());
+
+                verify(runService).getRun(ownerId, runId);
+        }
+
+        @Test
+        void rejectsRunRetrievalWithoutAuthentication() throws Exception {
+                mockMvc.perform(get("/api/v1/runs/{runId}", UUID.randomUUID()))
+                                .andExpect(status().isUnauthorized());
+                verifyNoInteractions(runService);
+        }
+
+        @Test
+        void rejectsInvalidRunId() throws Exception {
+                mockMvc.perform(get("/api/v1/runs/{runId}", "not-a-uuid")
+                                .with(jwt().jwt(token -> token.subject(UUID.randomUUID().toString()))))
+                                .andExpect(status().isBadRequest());
+                verifyNoInteractions(runService);
+        }
+
+        @Test
+        void returnsNotFoundWhenRunIsNotVisible() throws Exception {
+                UUID ownerId = UUID.randomUUID();
+                UUID runId = UUID.randomUUID();
+                when(runService.getRun(ownerId, runId)).thenThrow(
+                                new RunNotFoundException());
+
+                mockMvc.perform(get("/api/v1/runs/{runId}", runId)
+                                .with(jwt().jwt(token -> token.subject(ownerId.toString()))))
+                                .andExpect(status().isNotFound())
+                                .andExpect(jsonPath("$.detail").value("Run not found."));
         }
 }

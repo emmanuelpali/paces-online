@@ -5,13 +5,16 @@ import com.pacesonline.runservice.exception.InvalidRunPaceException;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
+import com.pacesonline.runservice.exception.RunNotFoundException;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -132,4 +135,31 @@ public class RunServiceTests {
 
         verifyNoInteractions(runRepository);
      }
+
+    @Test
+    void returnsRunFoundByIdAndOwner() {
+        UUID ownerId = UUID.randomUUID();
+        UUID runId = UUID.randomUUID();
+        Run run = new Run(ownerId, Instant.parse("2026-11-12T18:00:00Z"),
+                RunType.EASY, new BigDecimal("2.000"), 1001, 501, null, null);
+        when(runRepository.findByIdAndUserId(runId, ownerId)).thenReturn(Optional.of(run));
+
+        var response = runService.getRun(ownerId, runId);
+
+        assertThat(response.runType()).isEqualTo(RunType.EASY);
+        assertThat(response.averagePaceSecondsPerKilometre()).isEqualTo(501);
+    }
+
+    @Test
+    void reportsNotFoundWhenMissingOrNotOwned() {
+        UUID ownerId = UUID.randomUUID();
+        UUID runId = UUID.randomUUID();
+        when(runRepository.findByIdAndUserId(runId, ownerId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> runService.getRun(ownerId, runId))
+                .isInstanceOf(RunNotFoundException.class);
+
+        verify(runRepository).findByIdAndUserId(runId, ownerId);
+        verifyNoMoreInteractions(runRepository);
+    }
 }

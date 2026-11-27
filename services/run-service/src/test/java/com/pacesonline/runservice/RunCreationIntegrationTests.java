@@ -2,6 +2,10 @@ package com.pacesonline.runservice;
 
 import com.jayway.jsonpath.JsonPath;
 import com.pacesonline.runservice.entity.Run;
+import com.pacesonline.runservice.entity.RunType;
+import java.math.BigDecimal;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import com.pacesonline.runservice.repository.RunRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,6 +75,27 @@ class RunCreationIntegrationTests {
                         "Expected run " + runId + " to be persisted for owner " + ownerId));
 
         assertThat(persistedRun.getAveragePaceSecondsPerKilometre()).isEqualTo(501);
+    }
+
+    @Test
+    void onlyOwnerCanRetrieveRunAndOtherCallersSeeNotFound() throws Exception {
+        UUID ownerId = UUID.randomUUID();
+        Run run = runRepository.saveAndFlush(new Run(
+                ownerId, Instant.parse("2026-11-12T18:00:00Z"), RunType.EASY,
+                new BigDecimal("2.000"), 1001, 501, null, null));
+
+        mockMvc.perform(get("/api/v1/runs/{runId}", run.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + createAccessToken(ownerId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(run.getId().toString()));
+
+        String otherBearer = "Bearer " + createAccessToken(UUID.randomUUID());
+        for (UUID runId : new UUID[] {run.getId(), UUID.randomUUID()}) {
+            mockMvc.perform(get("/api/v1/runs/{runId}", runId)
+                            .header(HttpHeaders.AUTHORIZATION, otherBearer))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.detail").value("Run not found."));
+        }
     }
 
     private String createAccessToken(UUID ownerId) {

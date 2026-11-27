@@ -14,4 +14,9 @@ public class RunExceptionHandler {
         return ProblemDetail.forStatusAndDetail(
                 HttpStatus.BAD_REQUEST, exception.getMessage());
     }
+
+    @ExceptionHandler(RunNotFoundException.class)
+    public ProblemDetail handleRunNotFound(RunNotFoundException exception) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
+    }
 }
