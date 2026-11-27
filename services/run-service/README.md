@@ -54,6 +54,8 @@ Invoke-RestMethod http://localhost:8081/actuator/health
 
 - `POST /api/v1/runs` creates a run owned by the authenticated user.
 
+- `GET /api/v1/runs/{runId}` retrieves a run owned by the authenticated user.
+
 The handwritten OpenAPI contract is located at `contracts/run-api/run-api.yaml`.
 
 ## Tests

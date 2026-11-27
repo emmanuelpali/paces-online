@@ -10,6 +10,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -44,5 +46,13 @@ public class RunController {
         return ResponseEntity
                 .created(location)
                 .body(createdRun);
+    }
+
+    @GetMapping("/{runId}")
+    public RunResponse getRun(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable("runId") UUID runId
+    ) {
+        return runService.getRun(UUID.fromString(jwt.getSubject()), runId);
     }
 }

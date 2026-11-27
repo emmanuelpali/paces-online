@@ -1,0 +1,27 @@
+get:
+  tags:
+    - Runs
+  summary: Retrieve a run owned by the authenticated user
+  operationId: getRun
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: runId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    '200':
+      description: Run retrieved successfully
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/runs.yaml#/RunResponse'
+    '400':
+      description: Run ID is not a valid UUID
+    '401':
+      description: Authentication required or access token is invalid
+    '404':
+      description: Run not found for the authenticated user

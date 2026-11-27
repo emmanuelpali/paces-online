@@ -10,6 +10,7 @@ import com.pacesonline.runservice.entity.Run;
 import com.pacesonline.runservice.mapper.RunMapper;
 import com.pacesonline.runservice.repository.RunRepository;
 import com.pacesonline.runservice.exception.InvalidRunPaceException;
+import com.pacesonline.runservice.exception.RunNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,6 +47,13 @@ public class RunService {
         Run savedRun = runRepository.save(run);
 
         return runMapper.toResponse(savedRun);
+    }
+
+    @Transactional(readOnly = true)
+    public RunResponse getRun(UUID userId, UUID runId) {
+        return runRepository.findByIdAndUserId(runId, userId)
+                .map(runMapper::toResponse)
+                .orElseThrow(RunNotFoundException::new);
     }
 
     private int calculateAveragePace(
