@@ -28,7 +28,7 @@ post:
             $ref: '../components/schemas/runs.yaml#/RunResponse'
 
     '400':
-      description: Run request is invalid
+      description: Invalid request fields, or the distance and duration produce a rounded pace outside the supported range.
 
     '401':
       description: Authentication required or access token is invalid

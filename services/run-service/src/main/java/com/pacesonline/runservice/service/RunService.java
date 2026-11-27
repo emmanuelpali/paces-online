@@ -9,6 +9,7 @@ import com.pacesonline.runservice.dto.RunResponse;
 import com.pacesonline.runservice.entity.Run;
 import com.pacesonline.runservice.mapper.RunMapper;
 import com.pacesonline.runservice.repository.RunRepository;
+import com.pacesonline.runservice.exception.InvalidRunPaceException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,8 +52,14 @@ public class RunService {
             int durationSeconds,
             BigDecimal distanceKilometres
     ) {
-        return BigDecimal.valueOf(durationSeconds)
-                .divide(distanceKilometres, 0, RoundingMode.HALF_UP)
-                .intValueExact();
+        BigDecimal averagePace = BigDecimal.valueOf(durationSeconds)
+                .divide(distanceKilometres, 0, RoundingMode.HALF_UP);
+
+        if (averagePace.signum() <= 0
+                || averagePace.compareTo(BigDecimal.valueOf(Integer.MAX_VALUE)) > 0) {
+            throw new InvalidRunPaceException();
+        }
+
+        return averagePace.intValueExact();
     }
 }

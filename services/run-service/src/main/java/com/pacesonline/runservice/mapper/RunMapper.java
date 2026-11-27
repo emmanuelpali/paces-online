@@ -30,7 +30,6 @@ public class RunMapper {
     public RunResponse toResponse(Run run) {
         return new RunResponse(
                 run.getId(),
-                run.getUserId(),
                 run.getStartedAt(),
                 run.getRunType(),
                 run.getDistanceKilometres(),

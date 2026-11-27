@@ -8,7 +8,6 @@ import com.pacesonline.runservice.entity.RunType;
 
 public record RunResponse(
         UUID id,
-        UUID userId,
         Instant startedAt,
         RunType runType,
         BigDecimal distanceKilometres,

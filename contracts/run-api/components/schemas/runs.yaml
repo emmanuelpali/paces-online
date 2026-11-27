@@ -40,7 +40,6 @@ RunResponse:
   type: object
   required:
     - id
-    - userId
     - startedAt
     - runType
     - distanceKilometres
@@ -50,9 +49,6 @@ RunResponse:
     - updatedAt
   properties:
     id:
-      type: string
-      format: uuid
-    userId:
       type: string
       format: uuid
     startedAt:
